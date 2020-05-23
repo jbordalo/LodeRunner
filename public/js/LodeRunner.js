@@ -219,4 +219,9 @@ function onLoad() {
 }
 
 function b1() { mesg("button1") }
-function b2() { mesg("button2") }
+function b2() { updateScore(1); }
+function b3() { mesg("button3") }
+function updateScore(n) {
+	let score = document.getElementById("score");
+	score.value = parseInt(score.value, 10) + 1;
+} 
