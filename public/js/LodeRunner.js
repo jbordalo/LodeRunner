@@ -30,10 +30,17 @@ class Actor {
 			x * ACTOR_PIXELS_X, y * ACTOR_PIXELS_Y);
 	}
 	move(dx, dy) {
-		this.hide();
-		this.x += dx;
-		this.y += dy;
-		this.show();
+
+		// Respect world boundaries
+		if (this.x + dx < WORLD_WIDTH && this.x + dx >= 0 && this.y + dy < WORLD_HEIGHT && this.y + dy >= 0) {
+			this.hide();
+			this.x += dx;
+			this.y += dy;
+			this.show();
+		} else {
+			console.log("Respect world boundaries");
+		}
+
 	}
 }
 
@@ -123,10 +130,15 @@ class Hero extends ActiveActor {
 		if (k == ' ') { alert('SHOOT'); return; }
 		if (k == null) return;
 		let [dx, dy] = k;
-		this.hide();
-		this.x += dx;
-		this.y += dy;
-		this.show();
+
+		// 
+
+		this.move(dx, dy);
+
+		// this.hide();
+		// this.x += dx;
+		// this.y += dy;
+		// this.show();
 	}
 }
 
