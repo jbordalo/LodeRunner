@@ -131,9 +131,9 @@ class Hero extends ActiveActor {
 		if (k == null) return;
 		let [dx, dy] = k;
 
-		// 
-
 		this.move(dx, dy);
+		let a = control.world[this.x + dx][this.y + dy];
+		console.log("Type: " + a.constructor.name);
 
 		// this.hide();
 		// this.x += dx;
