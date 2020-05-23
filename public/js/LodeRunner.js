@@ -218,7 +218,7 @@ function onLoad() {
 	GameImages.loadAll(function () { new GameControl(); });
 }
 
-function b1() { mesg("button1") }
+function b1() { location.reload(); }
 function b2() { updateScore(1); }
 function b3() { mesg("button3") }
 function updateScore(n) {
