@@ -44,6 +44,10 @@ class Actor {
 	}
 }
 
+const FALL_THROUGH = -1;
+const FALL_ON = 0;
+const FALL_IN = 1;
+
 class PassiveActor extends Actor {
 	show() {
 		control.world[this.x][this.y] = this;
@@ -53,6 +57,19 @@ class PassiveActor extends Actor {
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
 	}
+
+	destructable() {
+		return false;
+	}
+
+	destroy() {
+		if (this.destructable()) this.hide();
+	}
+
+	fallMode() {
+		return FALL_ON;
+	}
+
 }
 
 class ActiveActor extends Actor {
@@ -72,21 +89,59 @@ class ActiveActor extends Actor {
 	}
 }
 
-class Brick extends PassiveActor {
+// Active actors not controlled by humans
+class NPC extends ActiveActor {
+	// label?
+}
+
+// Bad NPC
+class Villain extends NPC {
+	constructor(x, y, imageName) {
+		super(x, y, imageName);
+	}
+}
+
+class Solid extends PassiveActor {
+
+}
+
+class Passage extends PassiveActor { }
+
+// Vertical passages that allow vertical movement
+class Vertical extends Passage { }
+
+// Horizontal passages that allow horizontal movement
+class Horizontal extends Passage { fallMode() { return FALL_IN }; }
+
+// Passive actors which you can't stand on
+class FallThrough extends PassiveActor {
+	fallMode() {
+		return FALL_THROUGH;
+	}
+}
+
+// Label interface for items you can pick up
+class Loot extends PassiveActor {
+	pickup() {
+		this.hide();
+	}
+}
+
+class Brick extends Solid { //, Destructible {
 	constructor(x, y) { super(x, y, "brick"); }
 }
 
-class Chimney extends PassiveActor {
+class Chimney extends FallThrough {
 	constructor(x, y) { super(x, y, "chimney"); }
 }
 
-class Empty extends PassiveActor {
+class Empty extends FallThrough {
 	constructor() { super(-1, -1, "empty"); }
 	show() { }
 	hide() { }
 }
 
-class Gold extends PassiveActor {
+class Gold extends Loot {
 	constructor(x, y) { super(x, y, "gold"); }
 }
 
@@ -94,7 +149,7 @@ class Invalid extends PassiveActor {
 	constructor(x, y) { super(x, y, "invalid"); }
 }
 
-class Ladder extends PassiveActor {
+class Ladder extends Vertical {
 	constructor(x, y) {
 		super(x, y, "ladder");
 		this.visible = false;
@@ -113,11 +168,11 @@ class Ladder extends PassiveActor {
 	}
 }
 
-class Rope extends PassiveActor {
+class Rope extends Horizontal {
 	constructor(x, y) { super(x, y, "rope"); }
 }
 
-class Stone extends PassiveActor {
+class Stone extends Solid {
 	constructor(x, y) { super(x, y, "stone"); }
 }
 
@@ -126,14 +181,42 @@ class Hero extends ActiveActor {
 		super(x, y, "hero_runs_left");
 	}
 	animation() {
+
+		let under = control.world[this.x][this.y + 1];
+		const current = control.world[this.x][this.y];
+
+
+		for (; under instanceof FallThrough && !(current instanceof Horizontal);) {
+			this.move(0, 1);
+			under = control.world[this.x][this.y + 1];
+		}
+
+		if (under.fallMode() == FALL_IN) {
+			this.move(0, 1);
+		}
+
 		var k = control.getKey();
 		if (k == ' ') { alert('SHOOT'); return; }
 		if (k == null) return;
 		let [dx, dy] = k;
 
-		this.move(dx, dy);
-		let a = control.world[this.x + dx][this.y + dy];
-		console.log("Type: " + a.constructor.name);
+		if (dx > 0) {
+			this.imageName = "hero_runs_right";
+		} else if (dx < 0) {
+			this.imageName = "hero_runs_left";
+		}
+
+		const next = control.world[this.x + dx][this.y + dy];
+		console.log("Type: " + next.constructor.name);
+		// const current = control.world[this.x][this.y];
+
+		if (!(next instanceof Vertical || current instanceof Vertical)) {
+			dy = 0;
+		}
+
+		if (!(next instanceof Solid))
+			this.move(dx, dy);
+		else console.log("SOLID!");
 
 		// this.hide();
 		// this.x += dx;
@@ -142,14 +225,13 @@ class Hero extends ActiveActor {
 	}
 }
 
-class Robot extends ActiveActor {
+class Robot extends Villain {
 	constructor(x, y) {
 		super(x, y, "robot_runs_right");
 		this.dx = 1;
 		this.dy = 0;
 	}
 }
-
 
 
 // GAME CONTROL
@@ -166,6 +248,7 @@ class GameControl {
 		this.loadLevel(1);
 		this.setupEvents();
 	}
+
 	createMatrix() { // stored by columns
 		let matrix = new Array(WORLD_WIDTH);
 		for (let x = 0; x < WORLD_WIDTH; x++) {
@@ -176,6 +259,7 @@ class GameControl {
 		}
 		return matrix;
 	}
+
 	loadLevel(level) {
 		if (level < 1 || level > MAPS.length)
 			fatalError("Invalid level " + level)
@@ -186,6 +270,7 @@ class GameControl {
 				GameFactory.actorFromCode(map[y][x], x, y);
 			}
 	}
+
 	getKey() {
 		let k = control.key;
 		control.key = 0;
@@ -199,11 +284,13 @@ class GameControl {
 			// http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes
 		};
 	}
+
 	setupEvents() {
 		addEventListener("keydown", this.keyDownEvent, false);
 		addEventListener("keyup", this.keyUpEvent, false);
 		setInterval(this.animationEvent, 1000 / ANIMATION_EVENTS_PER_SECOND);
 	}
+
 	animationEvent() {
 		control.time++;
 		for (let x = 0; x < WORLD_WIDTH; x++)
