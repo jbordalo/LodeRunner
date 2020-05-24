@@ -125,10 +125,14 @@ class Loot extends PassiveActor {
 	pickup() {
 		this.hide();
 	}
+	fallMode(){return FALL_IN};
 }
 
 class Brick extends Solid { //, Destructible {
 	constructor(x, y) { super(x, y, "brick"); }
+	destructable(){
+		return true;
+	}
 }
 
 class Chimney extends FallThrough {
@@ -185,14 +189,11 @@ class Hero extends ActiveActor {
 		let under = control.world[this.x][this.y + 1];
 		const current = control.world[this.x][this.y];
 
-
-		for (; under instanceof FallThrough && !(current instanceof Horizontal);) {
-			this.move(0, 1);
-			under = control.world[this.x][this.y + 1];
-		}
-
-		if (under.fallMode() == FALL_IN) {
-			this.move(0, 1);
+		if(!(current instanceof Horizontal)){
+			if (under.fallMode() != FALL_ON ) {
+				this.move(0, 1);
+				return;
+			}
 		}
 
 		var k = control.getKey();
@@ -211,7 +212,8 @@ class Hero extends ActiveActor {
 		// const current = control.world[this.x][this.y];
 
 		if (!(next instanceof Vertical || current instanceof Vertical)) {
-			dy = 0;
+			if(!(dy > 0 && current instanceof Horizontal))
+				dy = 0;
 		}
 
 		if (!(next instanceof Solid))
