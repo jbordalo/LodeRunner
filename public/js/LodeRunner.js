@@ -126,14 +126,29 @@ class Hero extends ActiveActor {
 		super(x, y, "hero_runs_left");
 	}
 	animation() {
+		let under = control.world[this.x][this.y + 1];
+		console.log("Under me is: " + under.constructor.name);
+		if (under instanceof Empty) {
+			for (; (control.world[this.x][this.y + 1] instanceof Empty);)
+				this.move(0, 1);
+		}
 		var k = control.getKey();
 		if (k == ' ') { alert('SHOOT'); return; }
 		if (k == null) return;
 		let [dx, dy] = k;
 
-		this.move(dx, dy);
-		let a = control.world[this.x + dx][this.y + dy];
-		console.log("Type: " + a.constructor.name);
+		let next = control.world[this.x + dx][this.y + dy];
+		console.log("Type: " + next.constructor.name);
+		let current = control.world[this.x][this.y];
+
+
+		if ((next instanceof Ladder) || current instanceof Ladder) {
+			if (!(next instanceof Brick))
+				this.move(dx, dy);
+		}
+		else if (!(next instanceof Brick))
+			this.move(dx, 0);
+
 
 		// this.hide();
 		// this.x += dx;
