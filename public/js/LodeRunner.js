@@ -269,11 +269,9 @@ class Hero extends ActiveActor {
 		if (k == null) return;
 		let [dx, dy] = k;
 
-		// super.animation(dx);
 		// Set the direction with style
 		this.direction = dx / Math.abs(dx);
 
-		// const current = control.world[this.x][this.y];
 		const next = control.world[this.x + dx][this.y + dy];
 
 		if (!(next instanceof Vertical || current instanceof Vertical)) {
@@ -287,7 +285,6 @@ class Hero extends ActiveActor {
 			console.log("dx: " + dx);
 		}
 		else console.log("SOLID!");
-
 
 	}
 }
@@ -341,6 +338,7 @@ class GameControl {
 		control = this;
 		this.key = 0;
 		this.time = 0;
+		this.goldCount = 0;
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
 		this.world = this.createMatrix();
@@ -367,8 +365,10 @@ class GameControl {
 		for (let x = 0; x < WORLD_WIDTH; x++)
 			for (let y = 0; y < WORLD_HEIGHT; y++) {
 				// x/y reversed because map stored by lines
-				GameFactory.actorFromCode(map[y][x], x, y);
+				let o = GameFactory.actorFromCode(map[y][x], x, y);
+				if (o instanceof Gold) this.goldCount++;
 			}
+		document.getElementById("gold").value = this.goldCount;
 	}
 
 	getKey() {
