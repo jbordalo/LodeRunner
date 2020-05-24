@@ -30,7 +30,6 @@ class Actor {
 			x * ACTOR_PIXELS_X, y * ACTOR_PIXELS_Y);
 	}
 	move(dx, dy) {
-
 		// Respect world boundaries
 		if (this.x + dx < WORLD_WIDTH && this.x + dx >= 0 && this.y + dy < WORLD_HEIGHT && this.y + dy >= 0) {
 			this.hide();
@@ -73,9 +72,13 @@ class PassiveActor extends Actor {
 }
 
 class ActiveActor extends Actor {
+
 	constructor(x, y, imageName) {
+		const RIGHT = 1;
+		const LEFT = -1;
 		super(x, y, imageName);
 		this.time = 0;	// timestamp used in the control of the animations
+		this.direction = LEFT;
 	}
 	show() {
 		control.worldActive[this.x][this.y] = this;
@@ -85,7 +88,47 @@ class ActiveActor extends Actor {
 		control.worldActive[this.x][this.y] = empty;
 		control.world[this.x][this.y].draw(this.x, this.y);
 	}
-	animation() {
+
+	fall() {
+
+		const current = control.world[this.x][this.y];
+		let under = control.world[this.x][this.y + 1];
+
+		if (!(current instanceof Horizontal)) {
+			if (under.fallMode() != FALL_ON) {
+				if (this.direction > 0) {
+					this.imageName = this.rightFall();
+				} else {
+					this.imageName = this.leftFall();
+				}
+				this.move(0, 1);
+				return false;
+			}
+		}
+		return true;
+	}
+
+	animation(dx = 0, dy = 0) {
+
+		const current = control.world[this.x + dx][this.y + dy];
+
+		if (dx >= 0) {
+			if (current instanceof Ladder) {
+				this.imageName = this.rightLadder();
+			} else if (current instanceof Rope) {
+				this.imageName = this.rightRope();
+			} else {
+				this.imageName = this.rightRun();
+			}
+		} else {
+			if (current instanceof Ladder) {
+				this.imageName = this.leftLadder();
+			} else if (current instanceof Rope) {
+				this.imageName = this.leftRope();
+			} else {
+				this.imageName = this.leftRun();
+			}
+		}
 	}
 }
 
@@ -101,9 +144,7 @@ class Villain extends NPC {
 	}
 }
 
-class Solid extends PassiveActor {
-
-}
+class Solid extends PassiveActor { }
 
 class Passage extends PassiveActor { }
 
@@ -125,12 +166,12 @@ class Loot extends PassiveActor {
 	pickup() {
 		this.hide();
 	}
-	fallMode(){return FALL_IN};
+	fallMode() { return FALL_IN };
 }
 
 class Brick extends Solid { //, Destructible {
 	constructor(x, y) { super(x, y, "brick"); }
-	destructable(){
+	destructable() {
 		return true;
 	}
 }
@@ -184,46 +225,70 @@ class Hero extends ActiveActor {
 	constructor(x, y) {
 		super(x, y, "hero_runs_left");
 	}
+
+	rightRun() {
+		return "hero_runs_right";
+	}
+
+	leftRun() {
+		return "hero_runs_left";
+	}
+
+	leftLadder() {
+		return "hero_on_ladder_left";
+	}
+
+	rightLadder() {
+		return "hero_on_ladder_right";
+	}
+
+	leftRope() {
+		return "hero_on_rope_left";
+	}
+
+	rightRope() {
+		return "hero_on_rope_right";
+	}
+
+	leftFall() {
+		return "hero_falls_left";
+	}
+
+	rightFall() {
+		return "hero_falls_right";
+	}
+
 	animation() {
 
-		let under = control.world[this.x][this.y + 1];
 		const current = control.world[this.x][this.y];
 
-		if(!(current instanceof Horizontal)){
-			if (under.fallMode() != FALL_ON ) {
-				this.move(0, 1);
-				return;
-			}
-		}
+		if (!this.fall()) return;
 
 		var k = control.getKey();
 		if (k == ' ') { alert('SHOOT'); return; }
 		if (k == null) return;
 		let [dx, dy] = k;
 
-		if (dx > 0) {
-			this.imageName = "hero_runs_right";
-		} else if (dx < 0) {
-			this.imageName = "hero_runs_left";
-		}
+		// super.animation(dx);
+		// Set the direction with style
+		this.direction = dx / Math.abs(dx);
 
-		const next = control.world[this.x + dx][this.y + dy];
-		console.log("Type: " + next.constructor.name);
 		// const current = control.world[this.x][this.y];
+		const next = control.world[this.x + dx][this.y + dy];
 
 		if (!(next instanceof Vertical || current instanceof Vertical)) {
-			if(!(dy > 0 && current instanceof Horizontal))
+			if (!(dy > 0 && current instanceof Horizontal))
 				dy = 0;
 		}
 
-		if (!(next instanceof Solid))
+		if (!(next instanceof Solid)) {
+			super.animation(dx, dy);
 			this.move(dx, dy);
+			console.log("dx: " + dx);
+		}
 		else console.log("SOLID!");
 
-		// this.hide();
-		// this.x += dx;
-		// this.y += dy;
-		// this.show();
+
 	}
 }
 
@@ -233,6 +298,39 @@ class Robot extends Villain {
 		this.dx = 1;
 		this.dy = 0;
 	}
+
+	rightRun() {
+		return "robot_runs_right";
+	}
+
+	leftRun() {
+		return "robot_runs_left";
+	}
+
+	leftLadder() {
+		return "robot_on_ladder_left";
+	}
+
+	rightLadder() {
+		return "robot_on_ladder_right";
+	}
+
+	leftRope() {
+		return "robot_on_rope_left";
+	}
+
+	rightRope() {
+		return "robot_on_rope_right";
+	}
+
+	leftFall() {
+		return "robot_falls_left";
+	}
+
+	rightFall() {
+		return "robot_falls_right";
+	}
+
 }
 
 
