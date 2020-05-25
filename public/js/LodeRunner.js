@@ -196,19 +196,10 @@ class Invalid extends PassiveActor {
 
 class Ladder extends Vertical {
 	constructor(x, y) {
-		super(x, y, "ladder");
-		this.visible = false;
-	}
-	show() {
-		if (this.visible)
-			super.show();
-	}
-	hide() {
-		if (this.visible)
-			super.hide();
+		super(x, y, "empty");
 	}
 	makeVisible() {
-		this.visible = true;
+		this.imageName = "ladder";
 		this.show();
 	}
 }
