@@ -62,7 +62,12 @@ class PassiveActor extends Actor {
 	}
 
 	destroy() {
-		if (this.destructable()) this.hide();
+		if (this.destructable()) {
+			this.hide();
+			let trap = new Trap(this.x, this.y);
+			control.world[this.x][this.y] = trap;
+			trap.draw(this.x, this.y);
+		}
 	}
 
 	fallMode() {
@@ -88,13 +93,15 @@ class ActiveActor extends Actor {
 		control.worldActive[this.x][this.y] = empty;
 		control.world[this.x][this.y].draw(this.x, this.y);
 	}
-
+	trapMode(){
+		return FALL_IN;
+	}
 	fall() {
 
 		const current = control.world[this.x][this.y];
 		let under = control.world[this.x][this.y + 1];
-
-		if (!(current instanceof Horizontal)) {
+		//one does not fall when on a horizontal passage and when this actor is trapped
+		if (!(current instanceof Horizontal) && !(current instanceof Trap && this.trapMode() == FALL_IN)) {
 			if (under.fallMode() != FALL_ON) {
 				if (this.direction > 0) {
 					this.imageName = this.rightFall();
@@ -213,7 +220,12 @@ class Empty extends FallThrough {
 	show() { }
 	hide() { }
 }
-
+class Trap extends PassiveActor {
+	constructor(x,y) { super(x, y, "empty"); }
+	fallMode() {
+		return FALL_IN;	
+	}
+}
 class Gold extends Loot {
 	constructor(x, y) { super(x, y, "gold"); }
 }
@@ -276,7 +288,9 @@ class Hero extends ActiveActor {
 	rightFall() {
 		return "hero_falls_right";
 	}
-
+	trapMode(){
+		return FALL_THROUGH;
+	}
 	shoot() {
 		if (control.world[this.x + this.direction][this.y] instanceof Empty) {
 			control.world[this.x + this.direction][this.y + 1].destroy();
