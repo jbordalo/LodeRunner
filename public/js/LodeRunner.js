@@ -108,27 +108,55 @@ class ActiveActor extends Actor {
 		return true;
 	}
 
-	animation(dx = 0, dy = 0) {
+	animation(dx, dy) {
 
-		const current = control.world[this.x + dx][this.y + dy];
+		const current = control.world[this.x][this.y];
 
-		if (dx >= 0) {
-			if (current instanceof Ladder) {
-				this.imageName = this.rightLadder();
-			} else if (current instanceof Rope) {
-				this.imageName = this.rightRope();
-			} else {
-				this.imageName = this.rightRun();
-			}
-		} else {
-			if (current instanceof Ladder) {
-				this.imageName = this.leftLadder();
-			} else if (current instanceof Rope) {
-				this.imageName = this.leftRope();
-			} else {
-				this.imageName = this.leftRun();
-			}
+		if (!this.fall()) return;
+
+		[dx, dy] = this.setDirection();
+
+		// DUCT TAPE
+		if (dx == 0 && dy == 0) return;
+
+		// Set the last direction
+		this.direction = dx / Math.abs(dx);
+
+		const next = control.world[this.x + dx][this.y + dy];
+
+		if (!(next instanceof Vertical || current instanceof Vertical)) {
+			if (!(dy > 0 && current instanceof Horizontal))
+				dy = 0;
 		}
+
+		if (!(next instanceof Solid)) {
+			// super.animation(dx, dy);
+
+			// current = control.world[this.x + dx][this.y + dy];
+
+			if (dx >= 0) {
+				if (next instanceof Ladder) {
+					this.imageName = this.rightLadder();
+				} else if (next instanceof Rope) {
+					this.imageName = this.rightRope();
+				} else {
+					this.imageName = this.rightRun();
+				}
+			} else {
+				if (next instanceof Ladder) {
+					this.imageName = this.leftLadder();
+				} else if (next instanceof Rope) {
+					this.imageName = this.leftRope();
+				} else {
+					this.imageName = this.leftRun();
+				}
+			}
+
+			this.move(dx, dy);
+			console.log(`dx: ${dx}, dy: ${dy}`);
+		}
+		else console.log("SOLID!");
+
 	}
 }
 
@@ -248,50 +276,30 @@ class Hero extends ActiveActor {
 	rightFall() {
 		return "hero_falls_right";
 	}
-	shoot(){
-		if(control.world[this.x+this.direction][this.y] instanceof Empty){
-			control.world[this.x+this.direction][this.y+1].destroy();
-			if(this.direction > 0) //animation 
+
+	shoot() {
+		if (control.world[this.x + this.direction][this.y] instanceof Empty) {
+			control.world[this.x + this.direction][this.y + 1].destroy();
+			if (this.direction > 0) //animation 
 				this.imageName = "hero_shoots_right";
 			else this.imageName = "hero_shoots_left";
 			this.show(); //?? maybe keep this here
-			if(!(control.world[this.x-this.direction][this.y] instanceof Solid)){
-				let recoil = control.world[this.x-this.direction][this.y+1];
-				if(recoil instanceof Solid || recoil instanceof Ladder){
+			if (!(control.world[this.x - this.direction][this.y] instanceof Solid)) {
+				let recoil = control.world[this.x - this.direction][this.y + 1];
+				if (recoil instanceof Solid || recoil instanceof Ladder) {
 					this.move(-(this.direction), 0);
 				}
 			}
 		}
 	}
-	animation() {
 
-		const current = control.world[this.x][this.y];
-
-		if (!this.fall()) return;
-
+	setDirection() {
 		var k = control.getKey();
-		if (k == ' ') {this.shoot(); return; }
-		if (k == null) return;
-		let [dx, dy] = k;
-
-		// Set the direction with style
-		this.direction = dx / Math.abs(dx);
-
-		const next = control.world[this.x + dx][this.y + dy];
-
-		if (!(next instanceof Vertical || current instanceof Vertical)) {
-			if (!(dy > 0 && current instanceof Horizontal))
-				dy = 0;
-		}
-
-		if (!(next instanceof Solid)) {
-			super.animation(dx, dy);
-			this.move(dx, dy);
-			console.log("dx: " + dx);
-		}
-		else console.log("SOLID!");
-
+		if (k == ' ') { this.shoot(); return; }
+		if (k == null) return [0, 0];
+		return k;
 	}
+
 }
 
 class Robot extends Villain {
@@ -331,6 +339,44 @@ class Robot extends Villain {
 
 	rightFall() {
 		return "robot_falls_right";
+	}
+
+	setDirection() {
+
+		const current = control.world[this.x][this.y];
+		const under = control.world[this.x][this.y + 1];
+
+		if (this.x == hero.x && this.y == hero.y) {
+			console.log("Die");
+			location.reload();
+			return null;
+		}
+
+		// if (this.y == hero.y) {
+		if (this.x < hero.x) {
+			// super.animation(1, 0);
+			return [1, 0];
+			//this.move(1, 0);
+		} else if (this.x > hero.x) {
+			// super.animation(-1, 0);
+			return [-1, 0];
+			//this.move(-1, 0);
+		}
+		// } else {	
+		if (current instanceof Ladder || under instanceof Ladder) {
+			if (this.y > hero.y) {
+				// super.animation(0, 1);
+				return [0, -1];
+				// this.move(0, 1);
+			} else if (this.y < hero.y) {
+				// super.animation(0, -1);
+				return [0, 1];
+				//this.move(0, -1);
+			}
+		}
+		// }
+		return [0, 0];
+
 	}
 
 }
