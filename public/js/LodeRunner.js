@@ -248,7 +248,21 @@ class Hero extends ActiveActor {
 	rightFall() {
 		return "hero_falls_right";
 	}
-
+	shoot(){
+		if(control.world[this.x+this.direction][this.y] instanceof Empty){
+			control.world[this.x+this.direction][this.y+1].destroy();
+			if(this.direction > 0) //animation 
+				this.imageName = "hero_shoots_right";
+			else this.imageName = "hero_shoots_left";
+			this.show(); //?? maybe keep this here
+			if(!(control.world[this.x-this.direction][this.y] instanceof Solid)){
+				let recoil = control.world[this.x-this.direction][this.y+1];
+				if(recoil instanceof Solid || recoil instanceof Ladder){
+					this.move(-(this.direction), 0);
+				}
+			}
+		}
+	}
 	animation() {
 
 		const current = control.world[this.x][this.y];
@@ -256,7 +270,7 @@ class Hero extends ActiveActor {
 		if (!this.fall()) return;
 
 		var k = control.getKey();
-		if (k == ' ') { alert('SHOOT'); return; }
+		if (k == ' ') {this.shoot(); return; }
 		if (k == null) return;
 		let [dx, dy] = k;
 
