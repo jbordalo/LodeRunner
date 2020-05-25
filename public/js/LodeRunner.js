@@ -93,7 +93,7 @@ class ActiveActor extends Actor {
 		control.worldActive[this.x][this.y] = empty;
 		control.world[this.x][this.y].draw(this.x, this.y);
 	}
-	trapMode(){
+	trapMode() {
 		return FALL_IN;
 	}
 	fall() {
@@ -221,9 +221,9 @@ class Empty extends FallThrough {
 	hide() { }
 }
 class Trap extends PassiveActor {
-	constructor(x,y) { super(x, y, "empty"); }
+	constructor(x, y) { super(x, y, "empty"); }
 	fallMode() {
-		return FALL_IN;	
+		return FALL_IN;
 	}
 }
 class Gold extends Loot {
@@ -238,6 +238,11 @@ class Ladder extends Vertical {
 	constructor(x, y) {
 		super(x, y, "empty");
 	}
+
+	canGoDir(lambda) {
+		return control.world[this.x][this.y + lambda] instanceof Ladder;
+	}
+
 	makeVisible() {
 		this.imageName = "ladder";
 		this.show();
@@ -288,7 +293,7 @@ class Hero extends ActiveActor {
 	rightFall() {
 		return "hero_falls_right";
 	}
-	trapMode(){
+	trapMode() {
 		return FALL_THROUGH;
 	}
 	shoot() {
@@ -321,6 +326,7 @@ class Robot extends Villain {
 		super(x, y, "robot_runs_right");
 		this.dx = 1;
 		this.dy = 0;
+		this.onClosestLadder = false;
 	}
 
 	rightRun() {
@@ -355,10 +361,40 @@ class Robot extends Villain {
 		return "robot_falls_right";
 	}
 
+	findClosestLadder(y, lambda) {
+		for (let i = 0; i < WORLD_WIDTH; i++) {
+			let a = control.world[i][y];
+			let b = control.world[i][y + 1];
+			if (a instanceof Ladder && a.canGoDir(lambda)) {
+				return i;
+			}
+			if (b instanceof Ladder && b.canGoDir(lambda)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
 	setDirection() {
 
 		const current = control.world[this.x][this.y];
 		const under = control.world[this.x][this.y + 1];
+
+		let xDir;
+		let yDir;
+
+
+		if (this.x < hero.x) {
+			xDir = 1;
+		} else if (this.x > hero.x) {
+			xDir = -1;
+		}
+
+		if (this.y < hero.y) {
+			yDir = 1;
+		} else if (this.y > hero.y) {
+			yDir = -1;
+		}
 
 		if (this.x == hero.x && this.y == hero.y) {
 			console.log("Die");
@@ -366,30 +402,46 @@ class Robot extends Villain {
 			return null;
 		}
 
-		// if (this.y == hero.y) {
-		if (this.x < hero.x) {
-			// super.animation(1, 0);
-			return [1, 0];
-			//this.move(1, 0);
-		} else if (this.x > hero.x) {
-			// super.animation(-1, 0);
-			return [-1, 0];
-			//this.move(-1, 0);
-		}
-		// } else {	
-		if (current instanceof Ladder || under instanceof Ladder) {
-			if (this.y > hero.y) {
-				// super.animation(0, 1);
-				return [0, -1];
-				// this.move(0, 1);
-			} else if (this.y < hero.y) {
-				// super.animation(0, -1);
-				return [0, 1];
-				//this.move(0, -1);
+		// SAME Y?
+		if (this.y == hero.y) {
+			// ARE WE IN LADDER?
+			if (current instanceof Ladder) {
+				let next = control.world[this.x + xDir][this.y];
+				let underdx = control.world[this.x + xDir][this.y + 1];
+				if (next instanceof Passage || !(underdx instanceof FallThrough || next instanceof Solid)) { // maybe don't need solid part
+					return [xDir, 0];
+				} else {
+					if (under instanceof Ladder)
+						return [0, yDir];
+					else return [xDir, 0];
+				}
+			} else {
+				return [xDir, 0];
 			}
+		} else {
+			// Find the closest ladder that let's you go in the desired direction
+
+			if (current instanceof Horizontal && this.y < hero.y) {
+				return [0, yDir];
+			}
+
+			if (this.onClosestLadder && ((current instanceof Ladder && under instanceof Ladder) || under instanceof Ladder)) {
+				return [0, yDir];
+			}
+
+
+			let ladderAt = this.findClosestLadder(this.y, yDir);
+
+			if (ladderAt == -1) {
+				console.log("NO LADDER!");
+			} else {
+				this.onClosestLadder = true;
+			}
+
+			xDir = this.x > ladderAt ? -1 : 1;
+			return [xDir, 0];
 		}
-		// }
-		return [0, 0];
+
 
 	}
 
