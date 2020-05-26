@@ -25,21 +25,31 @@ class Actor {
 		this.imageName = imageName;
 		this.show();
 	}
+
 	draw(x, y) {
 		control.ctx.drawImage(GameImages[this.imageName],
 			x * ACTOR_PIXELS_X, y * ACTOR_PIXELS_Y);
 	}
+
+	validMove(dx, dy) {
+		return !(control.getBehind(this.x + dx, this.y + dy) instanceof Solid);
+	}
+
 	move(dx, dy) {
 		// Respect world boundaries
-		if (this.x + dx < WORLD_WIDTH && this.x + dx >= 0 && this.y + dy < WORLD_HEIGHT && this.y + dy >= 0) {
-			this.hide();
-			this.x += dx;
-			this.y += dy;
-			this.show();
-		} else {
+		if (!this.validMove(dx, dy)) {
 			console.log("Respect world boundaries");
+			return;
 		}
+		this.hide();
+		this.x += dx;
+		this.y += dy;
+		this.show();
 
+	}
+
+	fallMode() {
+		return FALL_ON;
 	}
 }
 
@@ -70,9 +80,6 @@ class PassiveActor extends Actor {
 		}
 	}
 
-	fallMode() {
-		return FALL_ON;
-	}
 }
 
 class ActiveActor extends Actor {
@@ -95,16 +102,28 @@ class ActiveActor extends Actor {
 	trapMode() {
 		return FALL_IN;
 	}
-	respawn(){
+	respawn() {
 		this.move(0, -(this.y));
 	}
+
+	// TODO
+	isFalling() {
+		const behind = control.getBehind(this.x, this.y);
+		const under = control.get(this.x, this.y + 1);
+		return ((behind instanceof Empty && ((under instanceof Empty) || (under instanceof Trap)))
+			|| (behind instanceof Trap && this.trapMode() !== FALL_ON)
+			|| (under instanceof Horizontal && behind instanceof Empty));
+	}
+
 	fall() {
 
-		const current = control.world[this.x][this.y];
-		let under = control.world[this.x][this.y + 1];
-		//one does not fall when on a horizontal passage and when this actor is trapped
-		if (!(current instanceof Horizontal) && !(current instanceof Trap && this.trapMode() == FALL_IN)) {
-			if (under.fallMode() != FALL_ON) {
+		const current = control.getBehind(this.x, this.y); // control.world[this.x][this.y];
+		const under = control.get(this.x, this.y + 1);
+		// one does not fall when on a horizontal passage and when this actor is trapped
+		// if (!(current instanceof Horizontal) && !(current instanceof Trap && this.trapMode() == FALL_IN)) {
+		if (this.isFalling()) {
+			console.log(under);
+			if (under.fallMode() !== FALL_ON) {
 				if (this.direction > 0) {
 					this.imageName = this.rightFall();
 				} else {
@@ -120,6 +139,8 @@ class ActiveActor extends Actor {
 	animation(dx, dy) {
 
 		const current = control.world[this.x][this.y];
+
+		const current = control.getBehind(this.x, this.y);// control.world[this.x][this.y];
 
 		if (!this.fall()) return;
 
@@ -142,7 +163,6 @@ class ActiveActor extends Actor {
 			// super.animation(dx, dy);
 
 			// current = control.world[this.x + dx][this.y + dy];
-
 			if (dx >= 0) {
 				if (next instanceof Ladder) {
 					this.imageName = this.rightLadder();
@@ -223,20 +243,20 @@ class Empty extends FallThrough {
 	hide() { }
 }
 class Trap extends PassiveActor {
-	constructor(x,y, object) { 
-		super(x, y, "empty"); 
+	constructor(x, y, object) {
+		super(x, y, "empty");
 		this.before = object;
 		this.created = control.time;
 	}
 	fallMode() {
 		return FALL_IN;
 	}
-	restore(){
-		if(control.time - this.created > 20){
+	restore() {
+		if (control.time - this.created > 20) {
 
 			const active = control.worldActive[this.x, this.y];
 
-			if(active instanceof ActiveActor) control.worldActive[this.x, this.y].respawn();
+			if (active instanceof ActiveActor) control.worldActive[this.x, this.y].respawn();
 
 			this.before.show();
 			return true;
@@ -249,7 +269,15 @@ class Gold extends Loot {
 }
 
 class Invalid extends PassiveActor {
-	constructor(x, y) { super(x, y, "invalid"); }
+	constructor(x, y) {
+		super(x, y, "invalid");
+	}
+}
+
+class Boundary extends Solid {
+	constructor() { super(-1, -1); }
+	show() { }
+	hide() { }
 }
 
 class Ladder extends Vertical {
@@ -334,6 +362,7 @@ class Hero extends ActiveActor {
 	setDirection() {
 		var k = control.getKey();
 		if (k == ' ') { this.shoot(); return; }
+		// TODO
 		if (k == null) return [0, 0];
 		return k;
 	}
@@ -381,6 +410,13 @@ class Robot extends Villain {
 	}
 
 	findClosestLadder(y, lambda) {
+
+		// TODO
+		/** 
+		 * Robot is finding ladders across gaps
+		 * Start looking from the robot
+		*/
+
 		for (let i = 0; i < WORLD_WIDTH; i++) {
 			let a = control.world[i][y];
 			let b = control.world[i][y + 1];
@@ -391,6 +427,7 @@ class Robot extends Villain {
 				return i;
 			}
 		}
+		console.log("Didn't find a ladder!");
 		return -1;
 	}
 
@@ -450,7 +487,6 @@ class Robot extends Villain {
 
 		}
 
-
 	}
 
 }
@@ -466,6 +502,7 @@ class GameControl {
 		this.goldCount = 0;
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
+		this.boundary = new Boundary();
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
 		this.timeout = [];
@@ -519,7 +556,7 @@ class GameControl {
 
 	animationEvent() {
 		control.time++;
-		for (let x = 0; x < WORLD_WIDTH; x++){
+		for (let x = 0; x < WORLD_WIDTH; x++) {
 			for (let y = 0; y < WORLD_HEIGHT; y++) {
 				let a = control.worldActive[x][y];
 				if (a.time < control.time) {
@@ -530,18 +567,36 @@ class GameControl {
 		}
 		let len = control.timeout.length;
 		console.log("len : " + len);
-		for(let x = 0; x < len; x++){
-			if(control.timeout[x].restore()) {
-				control.timeout.splice(x,1);
+		for (let x = 0; x < len; x++) {
+			if (control.timeout[x].restore()) {
+				control.timeout.splice(x, 1);
 				console.log("x = " + x);
 			}
 		}
 	}
+
 	keyDownEvent(k) {
 		control.key = k.keyCode;
 	}
+
 	keyUpEvent(k) {
 	}
+
+	isInside(x, y) {
+		return 0 <= x && x < WORLD_WIDTH && 0 <= y && y < WORLD_HEIGHT;
+	}
+
+	get(x, y) {
+		if (!this.isInside(x, y)) {
+			return this.boundary;
+		}
+		return control.worldActive[x][y] !== empty ? control.worldActive[x][y] : control.world[x][y];
+	}
+
+	getBehind(x, y) {
+		return control.world[x][y];
+	}
+
 }
 
 
