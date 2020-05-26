@@ -239,6 +239,7 @@ class Ladder extends Vertical {
 		super(x, y, "empty");
 	}
 
+	// To check if this Ladder allows going in the direction given
 	canGoDir(lambda) {
 		return control.world[this.x][this.y + lambda] instanceof Ladder;
 	}
@@ -326,7 +327,7 @@ class Robot extends Villain {
 		super(x, y, "robot_runs_right");
 		this.dx = 1;
 		this.dy = 0;
-		this.onClosestLadder = false;
+		this.closestLadderPosition = -1;
 	}
 
 	rightRun() {
@@ -380,66 +381,55 @@ class Robot extends Villain {
 		const current = control.world[this.x][this.y];
 		const under = control.world[this.x][this.y + 1];
 
-		let xDir;
-		let yDir;
+		const xDir = this.x > hero.x ? -1 : 1;
+		const yDir = this.y > hero.y ? -1 : 1;
 
-
-		if (this.x < hero.x) {
-			xDir = 1;
-		} else if (this.x > hero.x) {
-			xDir = -1;
+		// If we touch the hero he dies
+		if (this.y == hero.y && this.x == hero.x) {
+			console.log("Dead");
+			resetGame();
 		}
 
-		if (this.y < hero.y) {
-			yDir = 1;
-		} else if (this.y > hero.y) {
-			yDir = -1;
-		}
-
-		if (this.x == hero.x && this.y == hero.y) {
-			console.log("Die");
-			location.reload();
-			return null;
-		}
-
-		// SAME Y?
+		// If they're on the same Y
 		if (this.y == hero.y) {
-			// ARE WE IN LADDER?
-			if (current instanceof Ladder) {
-				let next = control.world[this.x + xDir][this.y];
-				let underdx = control.world[this.x + xDir][this.y + 1];
-				if (next instanceof Passage || !(underdx instanceof FallThrough || next instanceof Solid)) { // maybe don't need solid part
-					return [xDir, 0];
-				} else {
-					if (under instanceof Ladder)
-						return [0, yDir];
-					else return [xDir, 0];
+			// Robot walks in x direction
+			console.log("Going in the x direction!")
+			return [xDir, 0];
+		}
+		// If they're not on the same Y
+		else {
+
+			// If we're on a rope and hero is underneath us we just jump
+			if (current instanceof Horizontal && yDir > 0) {
+				return [0, 1];
+			}
+
+			// Find the closest stairs which go in yDir
+			this.closestLadderPosition = this.findClosestLadder(this.y, yDir);
+			// If we're on the ladder's column
+			if (this.x == this.closestLadderPosition) {
+				// We move in yDir except if we can't
+
+				// We can't if:
+				// We're going up and current is not a ladder
+				// We're going down and under is not a ladder
+
+				// Going down
+				if (yDir > 0) {
+					if (under instanceof Ladder) return [0, yDir];
 				}
-			} else {
+				// Going up
+				else {
+					if (current instanceof Ladder) return [0, yDir];
+				}
+
 				return [xDir, 0];
 			}
-		} else {
-			// Find the closest ladder that let's you go in the desired direction
-
-			if (current instanceof Horizontal && this.y < hero.y) {
-				return [0, yDir];
+			// If we're not on the ladder's column, go towards it
+			else {
+				return [this.x > this.closestLadderPosition ? -1 : 1, 0];
 			}
 
-			if (this.onClosestLadder && ((current instanceof Ladder && under instanceof Ladder) || under instanceof Ladder)) {
-				return [0, yDir];
-			}
-
-
-			let ladderAt = this.findClosestLadder(this.y, yDir);
-
-			if (ladderAt == -1) {
-				console.log("NO LADDER!");
-			} else {
-				this.onClosestLadder = true;
-			}
-
-			xDir = this.x > ladderAt ? -1 : 1;
-			return [xDir, 0];
 		}
 
 
