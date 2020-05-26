@@ -534,10 +534,27 @@ function onLoad() {
 	GameImages.loadAll(function () { new GameControl(); });
 }
 
-function b1() { location.reload(); }
+function reset() { location.reload(); }
 function b2() { updateScore(1); }
 function b3() { mesg("button3") }
 function updateScore(n) {
 	let score = document.getElementById("score");
 	score.value = parseInt(score.value, 10) + 1;
-} 
+}
+
+let audio = null;
+
+function playSound() {
+	if (audio == null)
+		audio = new Audio("http://ctp.di.fct.unl.pt/miei/lap/projs/proj2020-3/files/louiscole.m4a");
+	audio.loop = true;
+	audio.play();  // requires a previous user interaction with the page
+}
+
+function stopSound() {
+	if (audio != null) {
+		audio.pause();
+		// Restart audio
+		audio = null;
+	}
+}
