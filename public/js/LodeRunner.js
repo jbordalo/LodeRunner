@@ -534,7 +534,7 @@ function onLoad() {
 	GameImages.loadAll(function () { new GameControl(); });
 }
 
-function reset() { location.reload(); }
+function resetGame() { location.reload(); }
 function b2() { updateScore(1); }
 function b3() { mesg("button3") }
 function updateScore(n) {
