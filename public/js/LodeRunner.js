@@ -63,17 +63,16 @@ class PassiveActor extends Actor {
 
 	destroy() {
 		if (this.destructable()) {
-			this.hide();
-			let trap = new Trap(this.x, this.y);
+			let trap = new Trap(this.x, this.y, this);
 			control.world[this.x][this.y] = trap;
 			trap.draw(this.x, this.y);
+			control.timeout.push(trap);
 		}
 	}
 
 	fallMode() {
 		return FALL_ON;
 	}
-
 }
 
 class ActiveActor extends Actor {
@@ -95,6 +94,9 @@ class ActiveActor extends Actor {
 	}
 	trapMode() {
 		return FALL_IN;
+	}
+	respawn(){
+		this.move(0, -(this.y));
 	}
 	fall() {
 
@@ -160,9 +162,9 @@ class ActiveActor extends Actor {
 			}
 
 			this.move(dx, dy);
-			console.log(`dx: ${dx}, dy: ${dy}`);
+			//console.log(`dx: ${dx}, dy: ${dy}`);
 		}
-		else console.log("SOLID!");
+		//else console.log("SOLID!");
 
 	}
 }
@@ -221,9 +223,25 @@ class Empty extends FallThrough {
 	hide() { }
 }
 class Trap extends PassiveActor {
-	constructor(x, y) { super(x, y, "empty"); }
+	constructor(x,y, object) { 
+		super(x, y, "empty"); 
+		this.before = object;
+		this.created = control.time;
+	}
 	fallMode() {
 		return FALL_IN;
+	}
+	restore(){
+		if(control.time - this.created > 20){
+
+			const active = control.worldActive[this.x, this.y];
+
+			if(active instanceof ActiveActor) control.worldActive[this.x, this.y].respawn();
+
+			this.before.show();
+			return true;
+		}
+		return false;
 	}
 }
 class Gold extends Loot {
@@ -450,6 +468,7 @@ class GameControl {
 		empty = new Empty();	// only one empty actor needed
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
+		this.timeout = [];
 		this.loadLevel(1);
 		this.setupEvents();
 	}
@@ -500,7 +519,7 @@ class GameControl {
 
 	animationEvent() {
 		control.time++;
-		for (let x = 0; x < WORLD_WIDTH; x++)
+		for (let x = 0; x < WORLD_WIDTH; x++){
 			for (let y = 0; y < WORLD_HEIGHT; y++) {
 				let a = control.worldActive[x][y];
 				if (a.time < control.time) {
@@ -508,6 +527,15 @@ class GameControl {
 					a.animation();
 				}
 			}
+		}
+		let len = control.timeout.length;
+		console.log("len : " + len);
+		for(let x = 0; x < len; x++){
+			if(control.timeout[x].restore()) {
+				control.timeout.splice(x,1);
+				console.log("x = " + x);
+			}
+		}
 	}
 	keyDownEvent(k) {
 		control.key = k.keyCode;
