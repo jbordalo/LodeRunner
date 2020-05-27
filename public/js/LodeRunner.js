@@ -13,7 +13,8 @@ CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
 
 // tente não definir mais nenhuma variável global
 
-const GOLD_SCORE = 500;
+const GOLD_SCORE = 100;
+const ROBOT_SCORE = 100;
 
 let html;
 
@@ -222,6 +223,9 @@ class Villain extends NPC {
 		super(x, y, imageName);
 		this.trapped = 0;
 		this.loot = null;
+		this.holdingLootFor = 0;
+		// TODO have a score here? or just defined inside each specific villain. or add here AND redefine?
+		this.score = 0;
 	}
 
 	catchLoot() {
@@ -230,13 +234,31 @@ class Villain extends NPC {
 
 		console.assert(behind instanceof Loot);
 
-		behind.pickup();
+		// behind.pickup();
 		this.loot = behind.pickup();
 
 	}
 
 	move(dx, dy) {
 		const current = control.getBehind(this.x, this.y);
+
+
+		// If we're holding loot
+		if (this.loot !== null) {
+			if (this.holdingLootFor <= 10) {
+				this.holdingLootFor++;
+			} else {
+				if ((control.get(this.x, this.y + 1) instanceof Brick || control.get(this.x, this.y + 1) instanceof Stone) && current instanceof Empty) {
+					this.loot.x = this.x;
+					this.loot.y = this.y;
+					super.move(dx, dy);
+					control.world[this.loot.x][this.loot.y] = this.loot;
+					control.world[this.loot.x][this.loot.y].show();
+					this.loot = null;
+					return;
+				}
+			}
+		}
 
 		if (current instanceof Trap) {
 
@@ -252,6 +274,7 @@ class Villain extends NPC {
 				this.trapped++;
 			}
 			else {
+				hero.killedVillain(this);
 				this.respawn(this.direction, -1);
 				this.trapped = 0;
 			}
@@ -437,6 +460,10 @@ class Hero extends ActiveActor {
 
 	}
 
+	killedVillain(villain) {
+		html.updateScore(villain.score);
+	}
+
 	shoot() {
 		if (control.get(this.x + this.direction, this.y) instanceof Empty) {
 			control.getBehind(this.x + this.direction, this.y + 1).destroy();
@@ -484,6 +511,7 @@ class Robot extends Villain {
 		this.dx = 1;
 		this.dy = 0;
 		this.closestVerticalPosition = -1;
+		this.score = ROBOT_SCORE;
 	}
 
 	rightRun() {
