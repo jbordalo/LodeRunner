@@ -116,11 +116,10 @@ class ActiveActor extends Actor {
 	// TODO
 	isFalling() {
 		// TODO One does not fall when on a horizontal passage and when this actor is trapped
-
 		const behind = control.getBehind(this.x, this.y);
 		const under = control.get(this.x, this.y + 1);
 		return ((behind instanceof Empty && (under.fallMode() !== FALL_ON))
-			|| (behind instanceof Trap && this.trapMode() !== FALL_IN)
+			|| (behind instanceof Trap && this.trapMode() !== FALL_IN && under instanceof Empty)
 		);//|| (under instanceof Horizontal && behind instanceof Empty));
 	}
 
@@ -350,7 +349,6 @@ class Hero extends ActiveActor {
 	constructor(x, y) {
 		super(x, y, "hero_runs_left");
 		this.shot = false;
-		this.goldCount = 0;
 	}
 
 	rightRun() {
@@ -597,6 +595,23 @@ class Robot extends Villain {
 
 }
 
+class Level{
+	constructor(lvlnum){
+		this.goldCount = 0;
+		this.level = lvlnum;
+	}
+
+	setGoldCount(n) {
+		this.goldCount = n;
+		html.setGoldCount(n);
+	}
+
+	goldCaught(){
+		this.goldCount--;
+		//TODO
+	}
+
+}
 
 // GAME CONTROL
 
@@ -608,10 +623,11 @@ class GameControl {
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
 		this.boundary = new Boundary();
+		this.level = new Level();//TODO
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
 		this.timeout = [];
-		this.loadLevel(1);
+		this.loadLevel(1);//TODO
 		this.setupEvents();
 	}
 
@@ -639,7 +655,7 @@ class GameControl {
 				let o = GameFactory.actorFromCode(map[y][x], x, y);
 				if (o instanceof Gold) gc++;
 			}
-		hero.setGoldCount(gc);
+		control.level.setGoldCount(gc);
 	}
 
 	getKey() {
