@@ -206,10 +206,26 @@ class NPC extends ActiveActor {
 	// label?
 }
 
-// Bad NPC
+//Bad NPC
 class Villain extends NPC {
 	constructor(x, y, imageName) {
 		super(x, y, imageName);
+		this.trapped = 0;
+	}
+
+	move(dx,dy){
+		const current = control.getBehind(this.x, this.y);
+		if(current instanceof Trap){
+			if(this.trapped < 20) {
+				this.trapped++;
+			}
+			else {
+				this.respawn(this.direction, -1); 
+				this.trapped = 0;
+			}
+			return;
+		}
+		super.move(dx, dy);
 	}
 }
 
@@ -266,7 +282,7 @@ class Trap extends PassiveActor {
 		return FALL_IN;
 	}
 	restore() {
-		if (control.time - this.created > 20) {
+		if (control.time - this.created > 40) {
 			const active = control.get(this.x, this.y);
 			if (active instanceof ActiveActor) active.respawn(0, -(this.y));
 			this.before.show();
