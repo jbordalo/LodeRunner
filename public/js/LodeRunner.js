@@ -13,6 +13,8 @@ CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
 
 // tente não definir mais nenhuma variável global
 
+const GOLD_SCORE = 500;
+
 let html;
 
 let empty, hero, control;
@@ -130,6 +132,12 @@ class ActiveActor extends Actor {
 		return true;
 	}
 
+	catchGold() {
+		// Assume ActiveActors don't have to catch loot by default
+		console.log("I don't catch loot")
+		return;
+	}
+
 	animation(dx, dy) {
 
 		if (!this.fall()) return;
@@ -138,9 +146,8 @@ class ActiveActor extends Actor {
 
 		if (dx !== 0)
 			this.direction = dx / Math.abs(dx);
+
 		this.move(dx, dy);
-
-
 	}
 
 	show() {
@@ -187,6 +194,10 @@ class ActiveActor extends Actor {
 		// We know next is valid since it was checked in validMove()
 		const next = control.getBehind(this.x + dx, this.y + dy);
 		const current = control.getBehind(this.x, this.y);
+
+		if (current instanceof Loot) {
+			this.catchGold();
+		}
 
 		if (!(next instanceof Vertical || current instanceof Vertical)) {
 			if (!(dy > 0 && current instanceof Horizontal)) {
@@ -258,6 +269,7 @@ class Loot extends PassiveActor {
 	pickup() {
 		this.hide();
 	}
+
 	fallMode() { return FALL_IN };
 }
 
@@ -381,16 +393,28 @@ class Hero extends ActiveActor {
 		html.setGoldCount(n);
 	}
 
+	caughGold() {
+		this.goldCount--;
+		html.caughtGold();
+		html.updateScore(GOLD_SCORE);
+	}
+
+	catchGold() {
+
+		const behind = control.getBehind(this.x, this.y);
+
+		console.assert(behind instanceof Loot);
+
+		behind.pickup();
+		this.caughGold();
+
+	}
+
 	shoot() {
-		// this.shot = true;
 		if (control.get(this.x + this.direction, this.y) instanceof Empty) {
 			control.getBehind(this.x + this.direction, this.y + 1).destroy();
-			// if (this.direction > 0) //animation
-			// 	this.imageName = "hero_shoots_right";
-			// else this.imageName = "hero_shoots_left";
 			this.show(); //?? maybe keep this here
-			if (!(control.get(this.x - this.direction, this.y) /*control.world[this.x - this.direction][this.y]*/ instanceof Solid)) {
-				// let recoil = control.world[this.x - this.direction][this.y + 1];
+			if (!(control.get(this.x - this.direction, this.y) instanceof Solid)) {
 				let recoil = control.get(this.x - this.direction, this.y + 1);
 
 				if (recoil instanceof Solid || recoil instanceof Ladder) {
@@ -434,6 +458,7 @@ class Robot extends Villain {
 		this.dx = 1;
 		this.dy = 0;
 		this.closestVerticalPosition = -1;
+		this.carryingGold = false;
 	}
 
 	rightRun() {
@@ -468,13 +493,24 @@ class Robot extends Villain {
 		return "robot_falls_right";
 	}
 
-	animation() {
+	animation(dx, dy) {
 
 		// Reduce robot speed
 		if (this.time % 3 == 0)
 			return;
 
-		super.animation();
+		super.animation(dx, dy);
+
+	}
+
+	catchGold() {
+
+		const behind = control.getBehind(this.x, this.y);
+
+		console.assert(behind instanceof Loot);
+
+		behind.pickup();
+		this.carryingGold = true;
 
 	}
 
