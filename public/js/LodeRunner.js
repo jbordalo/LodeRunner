@@ -102,8 +102,8 @@ class ActiveActor extends Actor {
 	trapMode() {
 		return FALL_IN;
 	}
-	respawn() {
-		this.move(0, -(this.y));
+	respawn(dx, dy) {
+		super.move(dx,dy);
 	}
 
 	// TODO
@@ -263,9 +263,7 @@ class Trap extends PassiveActor {
 	restore() {
 		if (control.time - this.created > 20) {
 			const active = control.get(this.x, this.y);
-
-			if (active instanceof ActiveActor) active.respawn();
-
+			if (active instanceof ActiveActor) active.respawn(0, -(this.y));
 			this.before.show();
 			return true;
 		}
