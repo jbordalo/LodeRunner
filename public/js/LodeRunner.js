@@ -325,6 +325,7 @@ class Ladder extends Vertical {
 	}
 }
 
+
 class Rope extends Horizontal {
 	constructor(x, y) { super(x, y, "rope"); }
 }
@@ -465,6 +466,16 @@ class Robot extends Villain {
 
 	rightFall() {
 		return "robot_falls_right";
+	}
+
+	animation() {
+
+		// Reduce robot speed
+		if (this.time % 3 == 0)
+			return;
+
+		super.animation();
+
 	}
 
 	findClosestVertical(y, lambda) {
