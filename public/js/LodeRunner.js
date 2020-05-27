@@ -20,10 +20,17 @@ let empty, hero, control;
 
 class Actor {
 	constructor(x, y, imageName) {
+		const RIGHT = 1;
+		const LEFT = -1;
+		this.direction = LEFT;
 		this.x = x;
 		this.y = y;
 		this.imageName = imageName;
 		this.show();
+	}
+
+	fallMode() {
+		return FALL_ON;
 	}
 
 	draw(x, y) {
@@ -32,11 +39,10 @@ class Actor {
 	}
 
 	validMove(dx, dy) {
-		return !(control.getBehind(this.x + dx, this.y + dy) instanceof Solid);
+		return !(control.get(this.x + dx, this.y + dy) instanceof Solid);
 	}
 
 	move(dx, dy) {
-		// Respect world boundaries
 		if (!this.validMove(dx, dy)) {
 			console.log("Respect world boundaries");
 			return;
@@ -44,13 +50,13 @@ class Actor {
 		this.hide();
 		this.x += dx;
 		this.y += dy;
+
+		// if (dx !== 0)
+		// 	this.direction = dx / Math.abs(dx);
+
 		this.show();
-
 	}
 
-	fallMode() {
-		return FALL_ON;
-	}
 }
 
 const FALL_THROUGH = -1;
@@ -85,16 +91,10 @@ class PassiveActor extends Actor {
 class ActiveActor extends Actor {
 
 	constructor(x, y, imageName) {
-		const RIGHT = 1;
-		const LEFT = -1;
 		super(x, y, imageName);
 		this.time = 0;	// timestamp used in the control of the animations
-		this.direction = LEFT;
 	}
-	show() {
-		control.worldActive[this.x][this.y] = this;
-		this.draw(this.x, this.y);
-	}
+
 	hide() {
 		control.worldActive[this.x][this.y] = empty;
 		control.world[this.x][this.y].draw(this.x, this.y);
@@ -108,62 +108,47 @@ class ActiveActor extends Actor {
 
 	// TODO
 	isFalling() {
+		// TODO One does not fall when on a horizontal passage and when this actor is trapped
+
 		const behind = control.getBehind(this.x, this.y);
 		const under = control.get(this.x, this.y + 1);
-		return ((behind instanceof Empty && ((under instanceof Empty) || (under instanceof Trap)))
-			|| (behind instanceof Trap && this.trapMode() !== FALL_ON)
-			|| (under instanceof Horizontal && behind instanceof Empty));
+		return ((behind instanceof Empty && (under.fallMode() !== FALL_ON))
+			|| (behind instanceof Trap && this.trapMode() !== FALL_IN)
+		);//|| (under instanceof Horizontal && behind instanceof Empty));
 	}
 
 	fall() {
-
-		const current = control.getBehind(this.x, this.y); // control.world[this.x][this.y];
-		const under = control.get(this.x, this.y + 1);
-		// one does not fall when on a horizontal passage and when this actor is trapped
-		// if (!(current instanceof Horizontal) && !(current instanceof Trap && this.trapMode() == FALL_IN)) {
 		if (this.isFalling()) {
-			console.log(under);
-			if (under.fallMode() !== FALL_ON) {
-				if (this.direction > 0) {
-					this.imageName = this.rightFall();
-				} else {
-					this.imageName = this.leftFall();
-				}
-				this.move(0, 1);
-				return false;
-			}
+			super.move(0, 1);
+			return false;
 		}
 		return true;
 	}
 
 	animation(dx, dy) {
 
-		const current = control.world[this.x][this.y];
-
-		const current = control.getBehind(this.x, this.y);// control.world[this.x][this.y];
-
 		if (!this.fall()) return;
 
 		[dx, dy] = this.setDirection();
 
-		// DUCT TAPE
-		if (dx == 0 && dy == 0) return;
+		if (dx !== 0)
+			this.direction = dx / Math.abs(dx);
+		this.move(dx, dy);
 
-		// Set the last direction
-		this.direction = dx / Math.abs(dx);
 
-		const next = control.world[this.x + dx][this.y + dy];
+	}
 
-		if (!(next instanceof Vertical || current instanceof Vertical)) {
-			if (!(dy > 0 && current instanceof Horizontal))
-				dy = 0;
-		}
+	show() {
 
-		if (!(next instanceof Solid)) {
-			// super.animation(dx, dy);
-
-			// current = control.world[this.x + dx][this.y + dy];
-			if (dx >= 0) {
+		if (this.isFalling()) {
+			if (this.direction > 0) {
+				this.imageName = this.rightFall();
+			} else {
+				this.imageName = this.leftFall();
+			}
+		} else {
+			const next = control.getBehind(this.x, this.y);
+			if (this.direction >= 0) {
 				if (next instanceof Ladder) {
 					this.imageName = this.rightLadder();
 				} else if (next instanceof Rope) {
@@ -180,13 +165,35 @@ class ActiveActor extends Actor {
 					this.imageName = this.leftRun();
 				}
 			}
-
-			this.move(dx, dy);
-			//console.log(`dx: ${dx}, dy: ${dy}`);
 		}
-		//else console.log("SOLID!");
+
+		control.worldActive[this.x][this.y] = this;
+		this.draw(this.x, this.y);
+	}
+
+	move(dx, dy) {
+
+		// Respect world boundaries
+		if (!this.validMove(dx, dy)) {
+			//console.log("Respect world boundaries");
+			return;
+		}
+
+		// We know next is valid since it was checked in validMove()
+		const next = control.getBehind(this.x + dx, this.y + dy);
+		const current = control.getBehind(this.x, this.y);
+
+		if (!(next instanceof Vertical || current instanceof Vertical)) {
+			if (!(dy > 0 && current instanceof Horizontal)) {
+				dy = 0;
+			}
+		}
+
+		super.move(dx, dy);
 
 	}
+
+
 }
 
 // Active actors not controlled by humans
@@ -242,6 +249,8 @@ class Empty extends FallThrough {
 	show() { }
 	hide() { }
 }
+
+// TODO ALLOW HERO TO WALK ON THE HOLES
 class Trap extends PassiveActor {
 	constructor(x, y, object) {
 		super(x, y, "empty");
@@ -253,10 +262,9 @@ class Trap extends PassiveActor {
 	}
 	restore() {
 		if (control.time - this.created > 20) {
+			const active = control.get(this.x, this.y);
 
-			const active = control.worldActive[this.x, this.y];
-
-			if (active instanceof ActiveActor) control.worldActive[this.x, this.y].respawn();
+			if (active instanceof ActiveActor) active.respawn();
 
 			this.before.show();
 			return true;
@@ -287,7 +295,8 @@ class Ladder extends Vertical {
 
 	// To check if this Ladder allows going in the direction given
 	canGoDir(lambda) {
-		return control.world[this.x][this.y + lambda] instanceof Ladder;
+		// return control.world[this.x][this.y + lambda] instanceof Ladder;
+		return control.getBehind(this.x, this.y + lambda) instanceof Ladder
 	}
 
 	makeVisible() {
@@ -307,6 +316,7 @@ class Stone extends Solid {
 class Hero extends ActiveActor {
 	constructor(x, y) {
 		super(x, y, "hero_runs_left");
+		this.shot = false;
 	}
 
 	rightRun() {
@@ -343,19 +353,41 @@ class Hero extends ActiveActor {
 	trapMode() {
 		return FALL_THROUGH;
 	}
+
 	shoot() {
-		if (control.world[this.x + this.direction][this.y] instanceof Empty) {
-			control.world[this.x + this.direction][this.y + 1].destroy();
-			if (this.direction > 0) //animation 
-				this.imageName = "hero_shoots_right";
-			else this.imageName = "hero_shoots_left";
+		// this.shot = true;
+		if (control.get(this.x + this.direction, this.y) instanceof Empty) {
+			control.getBehind(this.x + this.direction, this.y + 1).destroy();
+			// if (this.direction > 0) //animation
+			// 	this.imageName = "hero_shoots_right";
+			// else this.imageName = "hero_shoots_left";
 			this.show(); //?? maybe keep this here
-			if (!(control.world[this.x - this.direction][this.y] instanceof Solid)) {
-				let recoil = control.world[this.x - this.direction][this.y + 1];
+			if (!(control.get(this.x - this.direction, this.y) /*control.world[this.x - this.direction][this.y]*/ instanceof Solid)) {
+				// let recoil = control.world[this.x - this.direction][this.y + 1];
+				let recoil = control.get(this.x - this.direction, this.y + 1);
+
 				if (recoil instanceof Solid || recoil instanceof Ladder) {
+					this.shot = true;
 					this.move(-(this.direction), 0);
 				}
 			}
+		}
+	}
+
+	show() {
+		if (this.shot) {
+			console.log("I was called!");
+			this.shot = false;
+
+			if (this.direction > 0) //animation
+				this.imageName = "hero_shoots_right";
+			else this.imageName = "hero_shoots_left";
+
+			control.worldActive[this.x][this.y] = this;
+			this.draw(this.x, this.y);
+
+		} else {
+			super.show();
 		}
 	}
 
@@ -418,8 +450,8 @@ class Robot extends Villain {
 		*/
 
 		for (let i = 0; i < WORLD_WIDTH; i++) {
-			let a = control.world[i][y];
-			let b = control.world[i][y + 1];
+			let a = control.getBehind(i, y);// control.world[i][y];
+			let b = control.getBehind(i, y + 1);// control.world[i][y + 1];
 			if (a instanceof Ladder && a.canGoDir(lambda)) {
 				return i;
 			}
@@ -433,8 +465,8 @@ class Robot extends Villain {
 
 	setDirection() {
 
-		const current = control.world[this.x][this.y];
-		const under = control.world[this.x][this.y + 1];
+		const current = control.getBehind(this.x, this.y);// control.world[this.x][this.y];
+		const under = control.getBehind(this.x, this.y + 1);// control.world[this.x][this.y + 1];
 
 		const xDir = this.x > hero.x ? -1 : 1;
 		const yDir = this.y > hero.y ? -1 : 1;
@@ -455,7 +487,7 @@ class Robot extends Villain {
 		else {
 
 			// If we're on a rope and hero is underneath us we just jump
-			if (current instanceof Horizontal && yDir > 0) {
+			if ((current instanceof Horizontal && !(under instanceof Solid)) && yDir > 0) {
 				return [0, 1];
 			}
 
@@ -555,6 +587,7 @@ class GameControl {
 	}
 
 	animationEvent() {
+
 		control.time++;
 		for (let x = 0; x < WORLD_WIDTH; x++) {
 			for (let y = 0; y < WORLD_HEIGHT; y++) {
