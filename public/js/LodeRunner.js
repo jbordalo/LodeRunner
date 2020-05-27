@@ -224,7 +224,6 @@ class Villain extends NPC {
 		this.trapped = 0;
 		this.loot = null;
 		this.holdingLootFor = 0;
-		this.goldCount = 0;
 		// TODO have a score here? or just defined inside each specific villain. or add here AND redefine?
 		this.score = 0;
 	}
@@ -396,6 +395,7 @@ class Hero extends ActiveActor {
 	constructor(x, y) {
 		super(x, y, "hero_runs_left");
 		this.shot = false;
+		this.goldCount = 0;
 	}
 
 	rightRun() {
@@ -436,6 +436,10 @@ class Hero extends ActiveActor {
 	setGoldCount(n) {
 		this.goldCount = n;
 		html.setGoldCount(n);
+	}
+
+	caughtAllGold(){
+		return this.goldCount === 0;
 	}
 
 	caughtLoot(loot) {
