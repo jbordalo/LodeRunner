@@ -40,8 +40,11 @@ class Actor {
 			x * ACTOR_PIXELS_X, y * ACTOR_PIXELS_Y);
 	}
 
+
 	validMove(dx, dy) {
-		return !(control.get(this.x + dx, this.y + dy) instanceof Solid);
+		let next = control.get(this.x + dx, this.y + dy);
+		return !(next instanceof Solid)
+			&& !(next.constructor == control.get(this.x, this.y).constructor);
 	}
 
 	move(dx, dy) {
