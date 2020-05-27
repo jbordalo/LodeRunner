@@ -234,7 +234,14 @@ class Solid extends PassiveActor { }
 class Passage extends PassiveActor { }
 
 // Vertical passages that allow vertical movement
-class Vertical extends Passage { }
+class Vertical extends Passage {
+	// To check if this Ladder allows going in the direction given
+	canGoDir(lambda) {
+		// return control.world[this.x][this.y + lambda] instanceof Ladder;
+		return control.getBehind(this.x, this.y + lambda) instanceof Vertical;
+	}
+
+}
 
 // Horizontal passages that allow horizontal movement
 class Horizontal extends Passage { fallMode() { return FALL_IN }; }
@@ -310,12 +317,6 @@ class Boundary extends Solid {
 class Ladder extends Vertical {
 	constructor(x, y) {
 		super(x, y, "empty");
-	}
-
-	// To check if this Ladder allows going in the direction given
-	canGoDir(lambda) {
-		// return control.world[this.x][this.y + lambda] instanceof Ladder;
-		return control.getBehind(this.x, this.y + lambda) instanceof Ladder
 	}
 
 	makeVisible() {
@@ -425,7 +426,7 @@ class Robot extends Villain {
 		super(x, y, "robot_runs_right");
 		this.dx = 1;
 		this.dy = 0;
-		this.closestLadderPosition = -1;
+		this.closestVerticalPosition = -1;
 	}
 
 	rightRun() {
@@ -460,21 +461,21 @@ class Robot extends Villain {
 		return "robot_falls_right";
 	}
 
-	findClosestLadder(y, lambda) {
+	findClosestVertical(y, lambda) {
 
 		// TODO
 		/** 
 		 * Robot is finding ladders across gaps
-		 * Start looking from the robot
+		 * Maybe start looking from the robot
 		*/
 
 		for (let i = 0; i < WORLD_WIDTH; i++) {
-			let a = control.getBehind(i, y);// control.world[i][y];
-			let b = control.getBehind(i, y + 1);// control.world[i][y + 1];
-			if (a instanceof Ladder && a.canGoDir(lambda)) {
+			let a = control.getBehind(i, y);
+			let b = control.getBehind(i, y + 1);
+			if (a instanceof Vertical && a.canGoDir(lambda)) {
 				return i;
 			}
-			if (b instanceof Ladder && b.canGoDir(lambda)) {
+			if (b instanceof Vertical && b.canGoDir(lambda)) {
 				return i;
 			}
 		}
@@ -484,8 +485,8 @@ class Robot extends Villain {
 
 	setDirection() {
 
-		const current = control.getBehind(this.x, this.y);// control.world[this.x][this.y];
-		const under = control.getBehind(this.x, this.y + 1);// control.world[this.x][this.y + 1];
+		const current = control.getBehind(this.x, this.y);
+		const under = control.getBehind(this.x, this.y + 1);
 
 		const xDir = this.x > hero.x ? -1 : 1;
 		const yDir = this.y > hero.y ? -1 : 1;
@@ -507,13 +508,14 @@ class Robot extends Villain {
 
 			// If we're on a rope and hero is underneath us we just jump
 			if ((current instanceof Horizontal && !(under instanceof Solid)) && yDir > 0) {
+				// Removing solid makes it try to jump and get stuck
 				return [0, 1];
 			}
 
 			// Find the closest stairs which go in yDir
-			this.closestLadderPosition = this.findClosestLadder(this.y, yDir);
+			this.closestVerticalPosition = this.findClosestVertical(this.y, yDir);
 			// If we're on the ladder's column
-			if (this.x == this.closestLadderPosition) {
+			if (this.x == this.closestVerticalPosition) {
 				// We move in yDir except if we can't
 
 				// We can't if:
@@ -522,18 +524,18 @@ class Robot extends Villain {
 
 				// Going down
 				if (yDir > 0) {
-					if (under instanceof Ladder) return [0, yDir];
+					if (under instanceof Vertical) return [0, yDir];
 				}
 				// Going up
 				else {
-					if (current instanceof Ladder) return [0, yDir];
+					if (current instanceof Vertical) return [0, yDir];
 				}
 
 				return [xDir, 0];
 			}
 			// If we're not on the ladder's column, go towards it
 			else {
-				return [this.x > this.closestLadderPosition ? -1 : 1, 0];
+				return [this.x > this.closestVerticalPosition ? -1 : 1, 0];
 			}
 
 		}
