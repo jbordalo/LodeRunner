@@ -213,14 +213,14 @@ class Villain extends NPC {
 		this.trapped = 0;
 	}
 
-	move(dx,dy){
+	move(dx, dy) {
 		const current = control.getBehind(this.x, this.y);
-		if(current instanceof Trap){
-			if(this.trapped < 20) {
+		if (current instanceof Trap) {
+			if (this.trapped < 20) {
 				this.trapped++;
 			}
 			else {
-				this.respawn(this.direction, -1); 
+				this.respawn(this.direction, -1);
 				this.trapped = 0;
 			}
 			return;
@@ -337,6 +337,7 @@ class Hero extends ActiveActor {
 	constructor(x, y) {
 		super(x, y, "hero_runs_left");
 		this.shot = false;
+		this.goldCount = 0;
 	}
 
 	rightRun() {
@@ -372,6 +373,11 @@ class Hero extends ActiveActor {
 	}
 	trapMode() {
 		return FALL_THROUGH;
+	}
+
+	setGoldCount(n) {
+		this.goldCount = n;
+		html.setGoldCount(n);
 	}
 
 	shoot() {
@@ -552,7 +558,6 @@ class GameControl {
 		control = this;
 		this.key = 0;
 		this.time = 0;
-		this.goldCount = 0;
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
 		this.boundary = new Boundary();
@@ -578,13 +583,16 @@ class GameControl {
 		if (level < 1 || level > MAPS.length)
 			fatalError("Invalid level " + level)
 		let map = MAPS[level - 1];  // -1 because levels start at 1
+
+		let gc = 0;
+
 		for (let x = 0; x < WORLD_WIDTH; x++)
 			for (let y = 0; y < WORLD_HEIGHT; y++) {
 				// x/y reversed because map stored by lines
 				let o = GameFactory.actorFromCode(map[y][x], x, y);
-				if (o instanceof Gold) this.goldCount++;
+				if (o instanceof Gold) gc++;
 			}
-		document.getElementById("gold").value = this.goldCount;
+		hero.setGoldCount(gc);
 	}
 
 	getKey() {
@@ -668,6 +676,7 @@ class HTMLHandling {
 	constructor() {
 		this.audio = null;
 		this.scoreBoard = document.getElementById("score");
+		this.goldCount = document.getElementById("gold");
 	}
 
 	resetGame() { location.reload(); }
@@ -678,6 +687,14 @@ class HTMLHandling {
 
 	updateScore(n) {
 		this.scoreBoard.value = parseInt(this.scoreBoard.value, 10) + n;
+	}
+
+	setGoldCount(n) {
+		this.goldCount.value = n;
+	}
+
+	caughtGold() {
+		this.goldCount.value = parseInt(this.goldCount.value, 10) - 1;
 	}
 
 	playSound() {
