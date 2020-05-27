@@ -13,6 +13,8 @@ CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
 
 // tente não definir mais nenhuma variável global
 
+let html;
+
 let empty, hero, control;
 
 
@@ -103,7 +105,7 @@ class ActiveActor extends Actor {
 		return FALL_IN;
 	}
 	respawn(dx, dy) {
-		super.move(dx,dy);
+		super.move(dx, dy);
 	}
 
 	// TODO
@@ -472,7 +474,7 @@ class Robot extends Villain {
 		// If we touch the hero he dies
 		if (this.y == hero.y && this.x == hero.x) {
 			console.log("Dead");
-			resetGame();
+			html.resetGame();
 		}
 
 		// If they're on the same Y
@@ -636,29 +638,44 @@ class GameControl {
 function onLoad() {
 	// Asynchronously load the images an then run the game
 	GameImages.loadAll(function () { new GameControl(); });
+	// TODO hero?
+	html = new HTMLHandling();
 }
 
-function resetGame() { location.reload(); }
-function b2() { updateScore(1); }
-function b3() { mesg("button3") }
-function updateScore(n) {
-	let score = document.getElementById("score");
-	score.value = parseInt(score.value, 10) + 1;
-}
+class HTMLHandling {
 
-let audio = null;
-
-function playSound() {
-	if (audio == null)
-		audio = new Audio("http://ctp.di.fct.unl.pt/miei/lap/projs/proj2020-3/files/louiscole.m4a");
-	audio.loop = true;
-	audio.play();  // requires a previous user interaction with the page
-}
-
-function stopSound() {
-	if (audio != null) {
-		audio.pause();
-		// Restart audio
-		audio = null;
+	constructor() {
+		this.audio = null;
+		this.scoreBoard = document.getElementById("score");
 	}
+
+	resetGame() { location.reload(); }
+
+	b2() { this.updateScore(2); }
+
+	b3() { mesg("button3") }
+
+	updateScore(n) {
+		this.scoreBoard.value = parseInt(this.scoreBoard.value, 10) + n;
+	}
+
+	playSound() {
+		if (this.audio == null)
+			this.audio = new Audio("http://ctp.di.fct.unl.pt/miei/lap/projs/proj2020-3/files/louiscole.m4a");
+		this.audio.loop = true;
+		this.audio.play();  // requires a previous user interaction with the page
+	}
+
+	stopSound() {
+		if (this.audio != null) {
+			this.audio.pause();
+			// Restart audio
+			this.audio = null;
+		}
+	}
+
 }
+
+
+
+
