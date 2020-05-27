@@ -42,7 +42,6 @@ class Actor {
 			x * ACTOR_PIXELS_X, y * ACTOR_PIXELS_Y);
 	}
 
-
 	validMove(dx, dy) {
 		let next = control.get(this.x + dx, this.y + dy);
 		return !(next instanceof Solid)
@@ -131,8 +130,9 @@ class ActiveActor extends Actor {
 		return true;
 	}
 
-	catchGold() {
+	catchLoot() {
 		// Assume ActiveActors don't have to catch loot by default
+		// Redefine this for Actors that DO catch Loot
 		console.log("I don't catch loot")
 		return;
 	}
@@ -195,7 +195,7 @@ class ActiveActor extends Actor {
 		const current = control.getBehind(this.x, this.y);
 
 		if (current instanceof Loot) {
-			this.catchGold();
+			this.catchLoot();
 		}
 
 		if (!(next instanceof Vertical || current instanceof Vertical)) {
@@ -221,11 +221,31 @@ class Villain extends NPC {
 	constructor(x, y, imageName) {
 		super(x, y, imageName);
 		this.trapped = 0;
+		this.loot = null;
+	}
+
+	catchLoot() {
+
+		const behind = control.getBehind(this.x, this.y);
+
+		console.assert(behind instanceof Loot);
+
+		behind.pickup();
+		this.loot = behind.pickup();
+
 	}
 
 	move(dx, dy) {
 		const current = control.getBehind(this.x, this.y);
+
 		if (current instanceof Trap) {
+
+			if (this.loot !== null) {
+				control.world[this.x][this.y - 1] = this.loot;
+				control.world[this.x][this.y - 1].show();
+				this.loot = null;
+			}
+
 			if (this.trapped < 20) {
 				this.trapped++;
 			}
@@ -267,6 +287,7 @@ class FallThrough extends PassiveActor {
 class Loot extends PassiveActor {
 	pickup() {
 		this.hide();
+		return this;
 	}
 
 	fallMode() { return FALL_IN };
@@ -310,7 +331,7 @@ class Trap extends PassiveActor {
 	}
 }
 class Gold extends Loot {
-	constructor(x, y) { super(x, y, "gold"); }
+	constructor(x, y) { super(x, y, "gold"); this.score = GOLD_SCORE; }
 }
 
 class Invalid extends PassiveActor {
@@ -391,20 +412,26 @@ class Hero extends ActiveActor {
 		html.setGoldCount(n);
 	}
 
-	caughGold() {
-		this.goldCount--;
-		html.caughtGold();
-		html.updateScore(GOLD_SCORE);
+	caughtLoot(loot) {
+
+		// We need to know if it's actually Gold since it's what the game is about
+		if (loot instanceof Gold) {
+			this.goldCount--;
+			html.caughtGold();
+		}
+		// However we have functionality to include other loot, just add personalized behavior here if needed
+
+		html.updateScore(loot.score);
 	}
 
-	catchGold() {
+	catchLoot() {
 
 		const behind = control.getBehind(this.x, this.y);
 
 		console.assert(behind instanceof Loot);
 
-		behind.pickup();
-		this.caughGold();
+		// General loot
+		this.caughtLoot(behind.pickup());
 
 	}
 
@@ -456,7 +483,6 @@ class Robot extends Villain {
 		this.dx = 1;
 		this.dy = 0;
 		this.closestVerticalPosition = -1;
-		this.carryingGold = false;
 	}
 
 	rightRun() {
@@ -498,17 +524,6 @@ class Robot extends Villain {
 			return;
 
 		super.animation(dx, dy);
-
-	}
-
-	catchGold() {
-
-		const behind = control.getBehind(this.x, this.y);
-
-		console.assert(behind instanceof Loot);
-
-		behind.pickup();
-		this.carryingGold = true;
 
 	}
 
