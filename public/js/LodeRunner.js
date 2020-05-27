@@ -15,6 +15,7 @@ CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
 
 const GOLD_SCORE = 100;
 const ROBOT_SCORE = 100;
+const DEFAULT_MAX_LIVES = 3;
 
 let html;
 
@@ -396,6 +397,7 @@ class Hero extends ActiveActor {
 		super(x, y, "hero_runs_left");
 		this.shot = false;
 		this.goldCount = 0;
+		this.lives = DEFAULT_MAX_LIVES;
 	}
 
 	rightRun() {
@@ -438,7 +440,7 @@ class Hero extends ActiveActor {
 		html.setGoldCount(n);
 	}
 
-	caughtAllGold(){
+	caughtAllGold() {
 		return this.goldCount === 0;
 	}
 
@@ -482,6 +484,30 @@ class Hero extends ActiveActor {
 				}
 			}
 		}
+	}
+
+	die() {
+		if (this.lives <= 0) {
+			console.log("Game over");
+			this.lives = DEFAULT_MAX_LIVES;
+			control.restartGame();
+			html.resetScore();
+			html.resetLives();
+		}
+		else {
+			console.log("Lost a life");
+			this.lives--;
+			control.restartLevel();
+			html.died();
+		}
+
+	}
+
+	move(dx, dy) {
+		if (control.get(this.x + dx, this.y + dy) instanceof Villain) {
+			this.die();
+		}
+		super.move(dx, dy);
 	}
 
 	show() {
@@ -605,14 +631,16 @@ class Robot extends Villain {
 
 		// If we touch the hero he dies
 		if (this.y == hero.y && this.x == hero.x) {
-			console.log("Dead");
-			control.restartLevel();
+			console.log("Killed the hero");
+			hero.die();
+			return [0, 0];
+			// control.restartLevel();
 		}
 
 		// If they're on the same Y
 		if (this.y == hero.y) {
 			// Robot walks in x direction
-			console.log("Going in the x direction!")
+			// console.log("Going in the x direction!");
 			return [xDir, 0];
 		}
 		// If they're not on the same Y
@@ -671,9 +699,7 @@ class GameControl {
 		this.timeout = [];
 		this.gameIsGoing = true;
 		this.level = 1;
-		this.changeToLevel = 1;
-		this.loadLevel(1);//TODO
-		// this.changeLevel();
+		this.loadLevel(1);
 		this.setupEvents();
 	}
 
@@ -697,21 +723,27 @@ class GameControl {
 	}
 
 	restartLevel() {
-		this.clearLevel();
-		this.loadLevel(this.level);
+		control.clearLevel();
+		control.loadLevel(control.level);
 	}
 
-	changeLevel() {
-		if (this.level !== this.changeToLevel) {
-			try {
-				this.clearLevel();
-				this.loadLevel(this.changeToLevel);
-				this.level = this.changeToLevel;
-			} catch (e) {
-				console.log("Level doesn't exist")
-				return false;
-			}
+	restartGame() {
+		control.level = 1;
+		control.restartLevel();
+	}
+
+	nextLevel() {
+		try {
+			control.level += 1;
+			control.restartLevel();
+			// this.clearLevel();
+			// this.loadLevel(this.changeToLevel);
+			// this.level = this.changeToLevel;
+		} catch (e) {
+			console.log("Level doesn't exist")
+			return false;
 		}
+
 	}
 
 	loadLevel(level) {
@@ -752,7 +784,7 @@ class GameControl {
 
 	animationEvent() {
 
-		control.changeLevel();
+		// control.changeLevel();
 		// if (!control.gameIsGoing) return;
 
 		control.time++;
@@ -815,6 +847,16 @@ class HTMLHandling {
 		this.audio = null;
 		this.scoreBoard = document.getElementById("score");
 		this.goldCount = document.getElementById("gold");
+		this.lives = document.getElementById("loderunners");
+		this.resetLives();
+	}
+
+	died() {
+		this.lives.value = parseInt(this.lives.value, 10) - 1;
+	}
+
+	resetLives() {
+		this.lives.value = DEFAULT_MAX_LIVES;
 	}
 
 	resetGame() {
@@ -823,7 +865,11 @@ class HTMLHandling {
 
 	b2() { this.updateScore(2); }
 
-	nextLevel() { control.changeToLevel += 1; }
+	nextLevel() { control.nextLevel(); }
+
+	resetScore() {
+		this.scoreBoard.value = 0;
+	}
 
 	updateScore(n) {
 		this.scoreBoard.value = parseInt(this.scoreBoard.value, 10) + n;
