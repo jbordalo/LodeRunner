@@ -602,7 +602,7 @@ class Robot extends Villain {
 		// If we touch the hero he dies
 		if (this.y == hero.y && this.x == hero.x) {
 			console.log("Dead");
-			html.resetGame();
+			control.restartLevel();
 		}
 
 		// If they're on the same Y
@@ -665,7 +665,11 @@ class GameControl {
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
 		this.timeout = [];
+		this.gameIsGoing = true;
+		this.level = 1;
+		this.changeToLevel = 1;
 		this.loadLevel(1);//TODO
+		// this.changeLevel();
 		this.setupEvents();
 	}
 
@@ -678,6 +682,32 @@ class GameControl {
 			matrix[x] = a;
 		}
 		return matrix;
+	}
+
+	clearLevel() {
+		for (let x = 0; x < WORLD_WIDTH; x++)
+			for (let y = 0; y < WORLD_HEIGHT; y++) {
+				control.world[x][y].hide();
+				control.worldActive[x][y].hide();
+			}
+	}
+
+	restartLevel() {
+		this.clearLevel();
+		this.loadLevel(this.level);
+	}
+
+	changeLevel() {
+		if (this.level !== this.changeToLevel) {
+			try {
+				this.clearLevel();
+				this.loadLevel(this.changeToLevel);
+				this.level = this.changeToLevel;
+			} catch (e) {
+				console.log("Level doesn't exist")
+				return false;
+			}
+		}
 	}
 
 	loadLevel(level) {
@@ -717,6 +747,9 @@ class GameControl {
 	}
 
 	animationEvent() {
+
+		control.changeLevel();
+		// if (!control.gameIsGoing) return;
 
 		control.time++;
 		for (let x = 0; x < WORLD_WIDTH; x++) {
@@ -780,11 +813,13 @@ class HTMLHandling {
 		this.goldCount = document.getElementById("gold");
 	}
 
-	resetGame() { location.reload(); }
+	resetGame() {
+		control.restartLevel();
+	}
 
 	b2() { this.updateScore(2); }
 
-	b3() { mesg("button3") }
+	nextLevel() { control.changeToLevel += 1; }
 
 	updateScore(n) {
 		this.scoreBoard.value = parseInt(this.scoreBoard.value, 10) + n;
