@@ -242,6 +242,8 @@ class Villain extends NPC {
 
 			if (this.loot !== null) {
 				control.world[this.x][this.y - 1] = this.loot;
+				this.loot.x = this.x;
+				this.loot.y = this.y - 1;
 				control.world[this.x][this.y - 1].show();
 				this.loot = null;
 			}
@@ -452,7 +454,6 @@ class Hero extends ActiveActor {
 
 	show() {
 		if (this.shot) {
-			console.log("I was called!");
 			this.shot = false;
 
 			if (this.direction > 0) //animation
@@ -527,7 +528,7 @@ class Robot extends Villain {
 
 	}
 
-	findClosestVertical(y, lambda) {
+	findClosestVertical(x, y, lambda) {
 
 		// TODO
 		/** 
@@ -535,18 +536,30 @@ class Robot extends Villain {
 		 * Maybe start looking from the robot
 		*/
 
+		let dist = WORLD_WIDTH + 1;
+		let ladder = -1;
+
 		for (let i = 0; i < WORLD_WIDTH; i++) {
 			let a = control.getBehind(i, y);
 			let b = control.getBehind(i, y + 1);
 			if (a instanceof Vertical && a.canGoDir(lambda)) {
-				return i;
+				if (Math.abs(x - i) < dist) {
+					dist = Math.abs(x, i);
+					ladder = i;
+				}
+				// return i;
 			}
 			if (b instanceof Vertical && b.canGoDir(lambda)) {
-				return i;
+				if (Math.abs(x - i) < dist) {
+					dist = Math.abs(x, i);
+					ladder = i;
+				}
+				// return i;
 			}
 		}
-		console.log("Didn't find a ladder!");
-		return -1;
+		return ladder;
+		// console.log("Didn't find a ladder!");
+		// return -1;
 	}
 
 	setDirection() {
@@ -579,7 +592,7 @@ class Robot extends Villain {
 			}
 
 			// Find the closest stairs which go in yDir
-			this.closestVerticalPosition = this.findClosestVertical(this.y, yDir);
+			this.closestVerticalPosition = this.findClosestVertical(this.x, this.y, yDir);
 			// If we're on the ladder's column
 			if (this.x == this.closestVerticalPosition) {
 				// We move in yDir except if we can't
@@ -610,8 +623,8 @@ class Robot extends Villain {
 
 }
 
-class Level{
-	constructor(lvlnum){
+class Level {
+	constructor(lvlnum) {
 		this.goldCount = 0;
 		this.level = lvlnum;
 	}
@@ -621,7 +634,7 @@ class Level{
 		html.setGoldCount(n);
 	}
 
-	goldCaught(){
+	goldCaught() {
 		this.goldCount--;
 		//TODO
 	}
