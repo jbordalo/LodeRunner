@@ -224,6 +224,7 @@ class Villain extends NPC {
 		this.trapped = 0;
 		this.loot = null;
 		this.holdingLootFor = 0;
+		this.goldCount = 0;
 		// TODO have a score here? or just defined inside each specific villain. or add here AND redefine?
 		this.score = 0;
 	}
@@ -651,24 +652,6 @@ class Robot extends Villain {
 
 }
 
-class Level {
-	constructor(lvlnum) {
-		this.goldCount = 0;
-		this.level = lvlnum;
-	}
-
-	setGoldCount(n) {
-		this.goldCount = n;
-		html.setGoldCount(n);
-	}
-
-	goldCaught() {
-		this.goldCount--;
-		//TODO
-	}
-
-}
-
 // GAME CONTROL
 
 class GameControl {
@@ -679,7 +662,6 @@ class GameControl {
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
 		this.boundary = new Boundary();
-		this.level = new Level();//TODO
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
 		this.timeout = [];
@@ -711,7 +693,7 @@ class GameControl {
 				let o = GameFactory.actorFromCode(map[y][x], x, y);
 				if (o instanceof Gold) gc++;
 			}
-		control.level.setGoldCount(gc);
+		hero.setGoldCount(gc);
 	}
 
 	getKey() {
