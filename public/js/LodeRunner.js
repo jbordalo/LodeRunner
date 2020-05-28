@@ -227,7 +227,7 @@ class NPC extends ActiveActor {
 class Villain extends NPC {
 	constructor(x, y, imageName) {
 		super(x, y, imageName);
-		this.trapped = 0;
+		this.timeTrap = -1;
 		this.loot = null;
 		this.holdingLootFor = 0;
 		// TODO have a score here? or just defined inside each specific villain. or add here AND redefine?
@@ -276,14 +276,14 @@ class Villain extends NPC {
 				control.world[this.x][this.y - 1].show();
 				this.loot = null;
 			}
-
-			if (this.trapped < 20) {
-				this.trapped++;
+			if(this.timeTrap < 0){
+				this.timeTrap = control.time;
 			}
-			else {
-				// hero.killedVillain(this);
+			if (control.time - this.timeTrap > 15){
+				//hero.killedVillain(this);
 				this.respawn(this.direction, -1);
-				this.trapped = 0;
+				current.switch();
+				this.timeTrap = -1;
 			}
 			return;
 		}
@@ -352,13 +352,15 @@ class Trap extends PassiveActor {
 	fallMode() {
 		return FALL_IN;
 	}
+	switch(){
+		const active = control.get(this.x, this.y);
+		if (active instanceof ActiveActor) active.respawn(0, -(this.y));
+		this.before.show();
+	}
 	restore() {
 		if (control.time - this.created > 40) {
 			const active = control.get(this.x, this.y);
-			if (active instanceof ActiveActor) {
-				active.respawn(0, -(this.y));
-				hero.killedVillain(active);
-			}
+			if (active instanceof ActiveActor) active.respawn(0, -(this.y));
 			this.before.show();
 			return true;
 		}
@@ -854,9 +856,12 @@ class GameControl {
 		let len = control.timeout.length;
 		console.log("len : " + len);
 		for (let x = 0; x < len; x++) {
-			if (control.timeout[x].restore()) {
+			let a = control.timeout[x];
+			if (a instanceof Trap) {
+				if(a.restore()) 
 				control.timeout.splice(x, 1);
-				console.log("x = " + x);
+			} else {
+				control.timeout.splice(x, 1);
 			}
 		}
 	}
