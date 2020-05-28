@@ -397,6 +397,10 @@ class HiddenLadder extends PassiveActor {
 		super(x, y, "empty");
 	}
 
+	fallMode(){
+		return FALL_THROUGH;
+	}
+
 	showLadder() {
 		const x = new Ladder(this.x, this.y);
 		x.makeVisible();
@@ -464,6 +468,11 @@ class Hero extends ActiveActor {
 		return this.goldCount === 0;
 	}
 
+	win(){
+		//TODO instanceof Vertical
+		return (this.caughtAllGold() && this.y == 0 && (control.getBehind(this.x, this.y) instanceof Ladder));
+	}
+
 	caughtLoot(loot) {
 
 		// We need to know if it's actually Gold since it's what the game is about
@@ -492,7 +501,7 @@ class Hero extends ActiveActor {
 	}
 
 	shoot() {
-		if (control.get(this.x + this.direction, this.y) instanceof Empty) {
+		if (control.get(this.x + this.direction, this.y) instanceof Empty && control.getBehind(this.x, this.y) instanceof Empty) {
 			control.getBehind(this.x + this.direction, this.y + 1).destroy();
 			this.show(); //?? maybe keep this here
 			if (!(control.get(this.x - this.direction, this.y) instanceof Solid)) {
@@ -521,6 +530,13 @@ class Hero extends ActiveActor {
 			html.died();
 		}
 
+	}
+
+	animation(dx, dy){
+		if(this.win()) {
+			control.nextLevel(); 
+		}
+		super.animation(dx, dy);
 	}
 
 	move(dx, dy) {
