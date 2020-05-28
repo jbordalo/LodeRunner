@@ -81,6 +81,10 @@ class PassiveActor extends Actor {
 		empty.draw(this.x, this.y);
 	}
 
+	isVisible(){
+		return true;
+	}
+
 	destructable() {
 		return false;
 	}
@@ -375,11 +379,26 @@ class Boundary extends Solid {
 class Ladder extends Vertical {
 	constructor(x, y) {
 		super(x, y, "empty");
+		this.visible = false;
 	}
-
+	isVisible(){
+		return this.visible;
+	}
 	makeVisible() {
 		this.imageName = "ladder";
 		this.show();
+		this.visible = true;
+	}
+}
+
+class HiddenLadder extends PassiveActor{
+	constructor(x,y){
+		super(x,y, "empty");
+	}
+
+	showLadder(){
+		const x = new Ladder(this.x, this.y);
+		x.makeVisible();
 	}
 }
 
@@ -758,6 +777,7 @@ class GameControl {
 				// x/y reversed because map stored by lines
 				let o = GameFactory.actorFromCode(map[y][x], x, y);
 				if (o instanceof Gold) gc++;
+				if (o instanceof Ladder && !o.isVisible()) new HiddenLadder(x,y);
 			}
 		hero.setGoldCount(gc);
 	}
@@ -786,6 +806,17 @@ class GameControl {
 
 		// control.changeLevel();
 		// if (!control.gameIsGoing) return;
+
+		if(hero.caughtAllGold()){
+			for (let x = 0; x < WORLD_WIDTH; x++) {
+				for (let y = 0; y < WORLD_HEIGHT; y++) {
+					let a = control.world[x][y];
+					if( a instanceof HiddenLadder){
+						a.showLadder();
+					}
+				}
+			}
+		}
 
 		control.time++;
 		for (let x = 0; x < WORLD_WIDTH; x++) {
