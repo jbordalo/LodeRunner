@@ -47,6 +47,7 @@ class Actor {
 	validMove(dx, dy) {
 		let next = control.get(this.x + dx, this.y + dy);
 		return !(next instanceof Solid)
+			// We are assuming a Hero can't go agaisnt another hero, Robot against another Robot, etc 
 			&& !(next.constructor == control.get(this.x, this.y).constructor);
 	}
 
@@ -205,7 +206,8 @@ class ActiveActor extends Actor {
 			this.catchLoot();
 		}
 
-		if (!(next instanceof Vertical || current instanceof Vertical)) {
+		// dy bigger than zero stops Actors from jumping onto a ladder without being on one
+		if (!((next instanceof Vertical && dy > 0) || current instanceof Vertical)) {
 			if (!(dy > 0 && current instanceof Horizontal)) {
 				dy = 0;
 			}
