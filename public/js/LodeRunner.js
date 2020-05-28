@@ -81,7 +81,7 @@ class PassiveActor extends Actor {
 		empty.draw(this.x, this.y);
 	}
 
-	isVisible(){
+	isVisible() {
 		return true;
 	}
 
@@ -381,7 +381,7 @@ class Ladder extends Vertical {
 		super(x, y, "empty");
 		this.visible = false;
 	}
-	isVisible(){
+	isVisible() {
 		return this.visible;
 	}
 	makeVisible() {
@@ -391,12 +391,12 @@ class Ladder extends Vertical {
 	}
 }
 
-class HiddenLadder extends PassiveActor{
-	constructor(x,y){
-		super(x,y, "empty");
+class HiddenLadder extends PassiveActor {
+	constructor(x, y) {
+		super(x, y, "empty");
 	}
 
-	showLadder(){
+	showLadder() {
 		const x = new Ladder(this.x, this.y);
 		x.makeVisible();
 	}
@@ -561,7 +561,7 @@ class Robot extends Villain {
 		this.dx = 1;
 		this.dy = 0;
 		this.closestVerticalPosition = -1;
-		this.score = ROBOT_SCORE;
+		this.score = ROBOT_SCORE; // Score the robot gives when killed
 	}
 
 	rightRun() {
@@ -718,6 +718,7 @@ class GameControl {
 		this.timeout = [];
 		this.gameIsGoing = true;
 		this.level = 1;
+		this.changeLevel = false;
 		this.loadLevel(1);
 		this.setupEvents();
 	}
@@ -741,23 +742,28 @@ class GameControl {
 			}
 	}
 
-	restartLevel() {
+	actuallyRestartLevel() {
 		control.clearLevel();
 		control.loadLevel(control.level);
 	}
 
+	restartLevel() {
+		control.clearLevel();
+		// control.loadLevel(control.level);
+		control.changeLevel = true;
+	}
+
 	restartGame() {
 		control.level = 1;
-		control.restartLevel();
+		// control.restartLevel();
+		control.changeLevel = true;
 	}
 
 	nextLevel() {
 		try {
 			control.level += 1;
-			control.restartLevel();
-			// this.clearLevel();
-			// this.loadLevel(this.changeToLevel);
-			// this.level = this.changeToLevel;
+			// control.restartLevel();
+			control.changeLevel = true;
 		} catch (e) {
 			console.log("Level doesn't exist")
 			return false;
@@ -777,7 +783,7 @@ class GameControl {
 				// x/y reversed because map stored by lines
 				let o = GameFactory.actorFromCode(map[y][x], x, y);
 				if (o instanceof Gold) gc++;
-				if (o instanceof Ladder && !o.isVisible()) new HiddenLadder(x,y);
+				if (o instanceof Ladder && !o.isVisible()) new HiddenLadder(x, y);
 			}
 		hero.setGoldCount(gc);
 	}
@@ -804,14 +810,15 @@ class GameControl {
 
 	animationEvent() {
 
-		// control.changeLevel();
-		// if (!control.gameIsGoing) return;
+		if (control.changeLevel) {
+			control.actuallyRestartLevel();
+		}
 
-		if(hero.caughtAllGold()){
+		if (hero.caughtAllGold()) {
 			for (let x = 0; x < WORLD_WIDTH; x++) {
 				for (let y = 0; y < WORLD_HEIGHT; y++) {
 					let a = control.world[x][y];
-					if( a instanceof HiddenLadder){
+					if (a instanceof HiddenLadder) {
 						a.showLadder();
 					}
 				}
