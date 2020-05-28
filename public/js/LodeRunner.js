@@ -184,6 +184,7 @@ class ActiveActor extends Actor {
 			}
 		}
 
+
 		control.worldActive[this.x][this.y] = this;
 		this.draw(this.x, this.y);
 	}
@@ -599,7 +600,7 @@ class Robot extends Villain {
 	animation(dx, dy) {
 
 		// Reduce robot speed
-		if (this.time % 3 == 0)
+		if (this.time % 2 == 0)
 			return;
 
 		super.animation(dx, dy);
@@ -608,13 +609,7 @@ class Robot extends Villain {
 
 	findClosestVertical(x, y, lambda) {
 
-		// TODO
-		/** 
-		 * Robot is finding ladders across gaps
-		 * Maybe start looking from the robot
-		*/
-
-		let dist = WORLD_WIDTH + 1;
+		let dist = WORLD_WIDTH + 1; // Bigger than it could get
 		let ladder = -1;
 
 		for (let i = 0; i < WORLD_WIDTH; i++) {
@@ -811,6 +806,7 @@ class GameControl {
 	animationEvent() {
 
 		if (control.changeLevel) {
+			control.changeLevel = false;
 			control.actuallyRestartLevel();
 		}
 
