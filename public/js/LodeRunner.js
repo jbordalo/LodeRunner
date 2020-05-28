@@ -248,6 +248,7 @@ class Villain extends NPC {
 	move(dx, dy) {
 		const current = control.getBehind(this.x, this.y);
 
+		// TODO maybe this statement should be under trap? cause we know that if we fall in a trap we drop it
 
 		// If we're holding loot
 		if (this.loot !== null) {
@@ -261,7 +262,7 @@ class Villain extends NPC {
 					control.world[this.loot.x][this.loot.y] = this.loot;
 					control.world[this.loot.x][this.loot.y].show();
 					this.loot = null;
-					return;
+					// return; TODO REMOVED THIS, DUNNO IF IT BREAKS ANYTHING
 				}
 			}
 		}
@@ -280,7 +281,7 @@ class Villain extends NPC {
 				this.trapped++;
 			}
 			else {
-				hero.killedVillain(this);
+				// hero.killedVillain(this);
 				this.respawn(this.direction, -1);
 				this.trapped = 0;
 			}
@@ -354,7 +355,10 @@ class Trap extends PassiveActor {
 	restore() {
 		if (control.time - this.created > 40) {
 			const active = control.get(this.x, this.y);
-			if (active instanceof ActiveActor) active.respawn(0, -(this.y));
+			if (active instanceof ActiveActor) {
+				active.respawn(0, -(this.y));
+				hero.killedVillain(active);
+			}
 			this.before.show();
 			return true;
 		}
@@ -397,7 +401,7 @@ class HiddenLadder extends PassiveActor {
 		super(x, y, "empty");
 	}
 
-	fallMode(){
+	fallMode() {
 		return FALL_THROUGH;
 	}
 
@@ -468,7 +472,7 @@ class Hero extends ActiveActor {
 		return this.goldCount === 0;
 	}
 
-	win(){
+	win() {
 		//TODO instanceof Vertical
 		return (this.caughtAllGold() && this.y == 0 && (control.getBehind(this.x, this.y) instanceof Ladder));
 	}
@@ -532,9 +536,9 @@ class Hero extends ActiveActor {
 
 	}
 
-	animation(dx, dy){
-		if(this.win()) {
-			control.nextLevel(); 
+	animation(dx, dy) {
+		if (this.win()) {
+			control.nextLevel();
 		}
 		super.animation(dx, dy);
 	}
