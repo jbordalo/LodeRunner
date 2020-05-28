@@ -128,8 +128,8 @@ class ActiveActor extends Actor {
 		// TODO One does not fall when on a horizontal passage and when this actor is trapped
 		const behind = control.getBehind(this.x, this.y);
 		const under = control.get(this.x, this.y + 1);
-		return ((behind instanceof FallThrough && (under.fallMode() !== FALL_ON))
-			|| (behind instanceof Trap && this.trapMode() !== FALL_IN && under instanceof Empty)
+		return ((behind.fallMode() == FALL_THROUGH && (under.fallMode() !== FALL_ON))
+			|| (behind instanceof Trap && this.trapMode() !== FALL_IN && under.fallMode() !== FALL_ON)
 		);//|| (under instanceof Horizontal && behind instanceof Empty));
 	}
 
@@ -216,7 +216,6 @@ class ActiveActor extends Actor {
 				dy = 0;
 			}
 		}
-
 		super.move(dx, dy);
 
 	}
@@ -257,10 +256,10 @@ class Villain extends NPC {
 		// TODO maybe this statement should be under trap? cause we know that if we fall in a trap we drop it
 
 		// If we're holding loot
-		if (this.loot !== null){
-			if(this.pickedUpTime < 0)
-			this.pickedUpTime = control.time;
-			else if (control.time - this.pickedUpTime > holdGoldTime 
+		if (this.loot !== null) {
+			if (this.pickedUpTime < 0)
+				this.pickedUpTime = control.time;
+			else if (control.time - this.pickedUpTime > holdGoldTime
 				&& control.get(this.x, this.y + 1) instanceof Solid && current instanceof Empty) {
 				this.loot.x = this.x;
 				this.loot.y = this.y;
@@ -269,9 +268,9 @@ class Villain extends NPC {
 				control.world[this.loot.x][this.loot.y].show();
 				this.loot = null;
 				this.pickedUpTime = -1;
-				// return; TODO REMOVED THIS, DUNNO IF IT BREAKS ANYTHING
+				return;
 			}
-	
+
 		}
 
 		if (current instanceof Trap) {
@@ -286,13 +285,13 @@ class Villain extends NPC {
 			}
 			if (this.timeTrap < 0) {
 				this.timeTrap = control.time;
-			} else if (control.time - this.timeTrap > robotTrapTime){
-				//hero.killedVillain(this);
+				// Villain can't move inside trap.
+				return;
+			} else if (control.time - this.timeTrap > robotTrapTime) {
 				this.respawn(this.direction, -1);
 				current.switch();
 				this.timeTrap = -1;
-			}
-			return;
+			} else return; // Villain can't move inside trap.
 		}
 		super.move(dx, dy);
 	}
@@ -478,6 +477,10 @@ class Hero extends ActiveActor {
 
 	caughtAllGold() {
 		return this.goldCount === 0;
+	}
+
+	fallMode() {
+		return FALL_IN;
 	}
 
 	win() {
