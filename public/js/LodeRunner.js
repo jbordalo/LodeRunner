@@ -506,16 +506,16 @@ class Hero extends ActiveActor {
 	}
 
 	die() {
-		if (this.lives <= 0) {
+		if (this.lives === 0) {
 			console.log("Game over");
 			this.lives = DEFAULT_MAX_LIVES;
 			control.restartGame();
 			html.resetScore();
 			html.resetLives();
-		}
-		else {
+		} else {
 			console.log("Lost a life");
 			this.lives--;
+			console.log(`I have ${this.lives} lives left`)
 			control.restartLevel();
 			html.died();
 		}
@@ -878,16 +878,16 @@ class HTMLHandling {
 		this.audio = null;
 		this.scoreBoard = document.getElementById("score");
 		this.goldCount = document.getElementById("gold");
-		this.lives = document.getElementById("loderunners");
+		this.lodeRunners = document.getElementById("loderunners");
 		this.resetLives();
 	}
 
 	died() {
-		this.lives.value = parseInt(this.lives.value, 10) - 1;
+		this.lodeRunners.value = parseInt(this.lodeRunners.value, 10) - 1;
 	}
 
 	resetLives() {
-		this.lives.value = DEFAULT_MAX_LIVES;
+		this.lodeRunners.value = DEFAULT_MAX_LIVES;
 	}
 
 	resetGame() {
