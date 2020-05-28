@@ -123,7 +123,7 @@ class ActiveActor extends Actor {
 		// TODO One does not fall when on a horizontal passage and when this actor is trapped
 		const behind = control.getBehind(this.x, this.y);
 		const under = control.get(this.x, this.y + 1);
-		return ((behind instanceof Empty && (under.fallMode() !== FALL_ON))
+		return ((behind instanceof FallThrough && (under.fallMode() !== FALL_ON))
 			|| (behind instanceof Trap && this.trapMode() !== FALL_IN && under instanceof Empty)
 		);//|| (under instanceof Horizontal && behind instanceof Empty));
 	}
