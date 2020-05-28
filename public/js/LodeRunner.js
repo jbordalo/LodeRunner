@@ -169,19 +169,19 @@ class ActiveActor extends Actor {
 				this.imageName = this.leftFall();
 			}
 		} else {
-			const next = control.getBehind(this.x, this.y);
+			const current = control.getBehind(this.x, this.y);
 			if (this.direction >= 0) {
-				if (next instanceof Ladder) {
+				if (current instanceof Ladder) {
 					this.imageName = this.rightLadder();
-				} else if (next instanceof Rope) {
+				} else if (current instanceof Rope) {
 					this.imageName = this.rightRope();
 				} else {
 					this.imageName = this.rightRun();
 				}
 			} else {
-				if (next instanceof Ladder) {
+				if (current instanceof Ladder) {
 					this.imageName = this.leftLadder();
-				} else if (next instanceof Rope) {
+				} else if (current instanceof Rope) {
 					this.imageName = this.leftRope();
 				} else {
 					this.imageName = this.leftRun();
@@ -206,11 +206,11 @@ class ActiveActor extends Actor {
 		const next = control.getBehind(this.x + dx, this.y + dy);
 		const current = control.getBehind(this.x, this.y);
 
+		// dy bigger than zero stops Actors from jumping onto a ladder without being on one
 		if (current instanceof Loot) {
 			this.catchLoot();
 		}
 
-		// dy bigger than zero stops Actors from jumping onto a ladder without being on one
 		if (!((next instanceof Vertical && dy > 0) || current instanceof Vertical)) {
 			if (!(dy > 0 && current instanceof Horizontal)) {
 				dy = 0;
@@ -325,7 +325,7 @@ class FallThrough extends PassiveActor {
 // Label interface for items you can pick up
 class Loot extends PassiveActor {
 	pickup() {
-		this.hide();
+		control.world[this.x][this.y] = empty;
 		return this;
 	}
 
@@ -860,7 +860,7 @@ class GameControl {
 			}
 		}
 		let len = control.timeout.length;
-		console.log("len : " + len);
+		//console.log("len : " + len);
 		for (let x = 0; x < len; x++) {
 			let a = control.timeout[x];
 			if (a instanceof Trap) {
