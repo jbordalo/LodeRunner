@@ -17,13 +17,12 @@ const GOLD_SCORE = 100;
 const ROBOT_SCORE = 100;
 const DEFAULT_MAX_LIVES = 3;
 
-const robotTrapTime = 15;
-const trapRestoreTime = 40;
-const holdGoldTime = 10;
+const ROBOT_TRAP_TIME = 15;
+const TRAP_RESTORE_TIME = 40;
+const GOLD_HOLD_TIME = 10;
 
 let html;
-
-let empty, hero, control;
+let empty, hero, control, patrimony;
 
 
 // ACTORS
@@ -151,8 +150,12 @@ class ActiveActor extends Actor {
 	animation(dx, dy) {
 
 		if (!this.fall()) return;
-
-		[dx, dy] = this.setDirection();
+		try {
+			[dx, dy] = this.setDirection();
+		} catch(e) {
+			// Actor didn't move, stop animation.
+			return;
+		}
 
 		if (dx !== 0)
 			this.direction = dx / Math.abs(dx);
@@ -259,7 +262,7 @@ class Villain extends NPC {
 		if (this.loot !== null) {
 			if (this.pickedUpTime < 0)
 				this.pickedUpTime = control.time;
-			else if (control.time - this.pickedUpTime > holdGoldTime
+			else if (control.time - this.pickedUpTime > GOLD_HOLD_TIME
 				&& control.get(this.x, this.y + 1) instanceof Solid && current instanceof Empty) {
 				this.loot.x = this.x;
 				this.loot.y = this.y;
@@ -287,7 +290,7 @@ class Villain extends NPC {
 				this.timeTrap = control.time;
 				// Villain can't move inside trap.
 				return;
-			} else if (control.time - this.timeTrap > robotTrapTime) {
+			} else if (control.time - this.timeTrap > ROBOT_TRAP_TIME) {
 				this.respawn(this.direction, -1);
 				current.switch();
 				this.timeTrap = -1;
@@ -363,7 +366,7 @@ class Trap extends PassiveActor {
 		this.before.show();
 	}
 	restore() {
-		if (control.time - this.created > trapRestoreTime) {
+		if (control.time - this.created > TRAP_RESTORE_TIME) {
 			const active = control.get(this.x, this.y);
 			if (active instanceof ActiveActor) active.respawn(0, -(this.y));
 			this.before.show();
@@ -432,7 +435,6 @@ class Hero extends ActiveActor {
 		super(x, y, "hero_runs_left");
 		this.shot = false;
 		this.goldCount = 0;
-		this.lives = DEFAULT_MAX_LIVES;
 	}
 
 	rightRun() {
@@ -531,16 +533,16 @@ class Hero extends ActiveActor {
 	}
 
 	die() {
-		if (this.lives === 0) {
+		if (patrimony.lives === 1) {
 			console.log("Game over");
-			this.lives = DEFAULT_MAX_LIVES;
+			patrimony.reset();
 			control.restartGame();
 			html.resetScore();
 			html.resetLives();
 		} else {
 			console.log("Lost a life");
-			this.lives--;
-			console.log(`I have ${this.lives} lives left`)
+			patrimony.decLives();
+			console.log(`I have ${patrimony.getLives()} lives left`);
 			control.restartLevel();
 			html.died();
 		}
@@ -581,7 +583,7 @@ class Hero extends ActiveActor {
 		var k = control.getKey();
 		if (k == ' ') { this.shoot(); return; }
 		// TODO
-		if (k == null) return [0, 0];
+		if (k == null) return;
 		return k;
 	}
 
@@ -678,7 +680,7 @@ class Robot extends Villain {
 		if (this.y == hero.y && this.x == hero.x) {
 			console.log("Killed the hero");
 			hero.die();
-			return [0, 0];
+			return;
 			// control.restartLevel();
 		}
 
@@ -729,6 +731,33 @@ class Robot extends Villain {
 
 }
 
+class Patrimony {
+	constructor() {
+		this.reset();
+	}
+
+	getLives() {
+		return this.lives;
+	}
+
+	getScore() {
+		return this.score;
+	}
+
+	decLives() {
+		this.lives--;
+	}
+
+	addScore(n) {
+		this.score += n;
+	}
+
+	reset() {
+		this.lives = DEFAULT_MAX_LIVES;
+		this.score = 0;
+	}
+}
+
 // GAME CONTROL
 
 class GameControl {
@@ -742,11 +771,11 @@ class GameControl {
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
 		this.timeout = [];
-		this.gameIsGoing = true;
 		this.level = 1;
 		this.changeLevel = false;
 		this.loadLevel(1);
 		this.setupEvents();
+		patrimony = new Patrimony();
 	}
 
 	createMatrix() { // stored by columns
@@ -774,7 +803,6 @@ class GameControl {
 	}
 
 	restartLevel() {
-		control.clearLevel();
 		// control.loadLevel(control.level);
 		control.changeLevel = true;
 	}
@@ -786,15 +814,21 @@ class GameControl {
 	}
 
 	nextLevel() {
-		try {
-			control.level += 1;
-			// control.restartLevel();
-			control.changeLevel = true;
-		} catch (e) {
-			console.log("Level doesn't exist")
-			return false;
+		// control.restartLevel();
+		if (control.level+1 > MAPS.length) {
+			return alert("Invalid level " + control.level);
 		}
+		control.level += 1;
+		control.changeLevel = true;
+	}
 
+	previousLevel() {
+		// control.restartLevel();
+		if (control.level-1 < 1){
+			return alert("Invalid level " + control.level);
+		}
+		control.level -= 1;
+		control.changeLevel = true;
 	}
 
 	loadLevel(level) {
@@ -802,7 +836,7 @@ class GameControl {
 			fatalError("Invalid level " + level)
 		let map = MAPS[level - 1];  // -1 because levels start at 1
 
-		let gc = 0;
+		let gc = 0; // So we don't access the hero more times than we need.
 
 		for (let x = 0; x < WORLD_WIDTH; x++)
 			for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -917,6 +951,7 @@ class HTMLHandling {
 		this.goldCount = document.getElementById("gold");
 		this.lodeRunners = document.getElementById("loderunners");
 		this.resetLives();
+		this.resetScore();
 	}
 
 	died() {
@@ -931,7 +966,7 @@ class HTMLHandling {
 		control.restartLevel();
 	}
 
-	b2() { this.updateScore(2); }
+	previousLevel() { control.previousLevel(); }
 
 	nextLevel() { control.nextLevel(); }
 
