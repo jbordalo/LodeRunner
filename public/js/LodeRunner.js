@@ -276,10 +276,10 @@ class Villain extends NPC {
 				control.world[this.x][this.y - 1].show();
 				this.loot = null;
 			}
-			if(this.timeTrap < 0){
+			if (this.timeTrap < 0) {
 				this.timeTrap = control.time;
 			}
-			if (control.time - this.timeTrap > 15){
+			if (control.time - this.timeTrap > 15) {
 				//hero.killedVillain(this);
 				this.respawn(this.direction, -1);
 				current.switch();
@@ -342,7 +342,6 @@ class Empty extends FallThrough {
 	hide() { }
 }
 
-// TODO ALLOW HERO TO WALK ON THE HOLES
 class Trap extends PassiveActor {
 	constructor(x, y, object) {
 		super(x, y, "empty");
@@ -352,7 +351,7 @@ class Trap extends PassiveActor {
 	fallMode() {
 		return FALL_IN;
 	}
-	switch(){
+	switch() {
 		const active = control.get(this.x, this.y);
 		if (active instanceof ActiveActor) active.respawn(0, -(this.y));
 		this.before.show();
@@ -631,7 +630,7 @@ class Robot extends Villain {
 
 	findClosestVertical(x, y, lambda) {
 
-		let dist = WORLD_WIDTH + 1; // Bigger than it could get
+		let dist = 999999; // Bigger than it could get
 		let ladder = -1;
 
 		for (let i = 0; i < WORLD_WIDTH; i++) {
@@ -639,14 +638,14 @@ class Robot extends Villain {
 			let b = control.getBehind(i, y + 1);
 			if (a instanceof Vertical && a.canGoDir(lambda)) {
 				if (Math.abs(x - i) < dist) {
-					dist = Math.abs(x, i);
+					dist = Math.abs(x - i);
 					ladder = i;
 				}
 				// return i;
 			}
 			if (b instanceof Vertical && b.canGoDir(lambda)) {
 				if (Math.abs(x - i) < dist) {
-					dist = Math.abs(x, i);
+					dist = Math.abs(x - i);
 					ladder = i;
 				}
 				// return i;
@@ -858,8 +857,8 @@ class GameControl {
 		for (let x = 0; x < len; x++) {
 			let a = control.timeout[x];
 			if (a instanceof Trap) {
-				if(a.restore()) 
-				control.timeout.splice(x, 1);
+				if (a.restore())
+					control.timeout.splice(x, 1);
 			} else {
 				control.timeout.splice(x, 1);
 			}
