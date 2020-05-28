@@ -17,6 +17,10 @@ const GOLD_SCORE = 100;
 const ROBOT_SCORE = 100;
 const DEFAULT_MAX_LIVES = 3;
 
+const robotTrapTime = 15;
+const trapRestoreTime = 40;
+const holdGoldTime = 10;
+
 let html;
 
 let empty, hero, control;
@@ -231,7 +235,7 @@ class Villain extends NPC {
 		super(x, y, imageName);
 		this.timeTrap = -1;
 		this.loot = null;
-		this.holdingLootFor = 0;
+		this.pickedUpTime = -1;
 		// TODO have a score here? or just defined inside each specific villain. or add here AND redefine?
 		this.score = 0;
 	}
@@ -253,20 +257,21 @@ class Villain extends NPC {
 		// TODO maybe this statement should be under trap? cause we know that if we fall in a trap we drop it
 
 		// If we're holding loot
-		if (this.loot !== null) {
-			if (this.holdingLootFor <= 10) {
-				this.holdingLootFor++;
-			} else {
-				if ((control.get(this.x, this.y + 1) instanceof Brick || control.get(this.x, this.y + 1) instanceof Stone) && current instanceof Empty) {
-					this.loot.x = this.x;
-					this.loot.y = this.y;
-					super.move(dx, dy);
-					control.world[this.loot.x][this.loot.y] = this.loot;
-					control.world[this.loot.x][this.loot.y].show();
-					this.loot = null;
-					// return; TODO REMOVED THIS, DUNNO IF IT BREAKS ANYTHING
-				}
+		if (this.loot !== null){
+			if(this.pickedUpTime < 0)
+			this.pickedUpTime = control.time;
+			else if (control.time - this.pickedUpTime > holdGoldTime 
+				&& control.get(this.x, this.y + 1) instanceof Solid && current instanceof Empty) {
+				this.loot.x = this.x;
+				this.loot.y = this.y;
+				super.move(dx, dy);
+				control.world[this.loot.x][this.loot.y] = this.loot;
+				control.world[this.loot.x][this.loot.y].show();
+				this.loot = null;
+				this.pickedUpTime = -1;
+				// return; TODO REMOVED THIS, DUNNO IF IT BREAKS ANYTHING
 			}
+	
 		}
 
 		if (current instanceof Trap) {
@@ -277,11 +282,11 @@ class Villain extends NPC {
 				this.loot.y = this.y - 1;
 				control.world[this.x][this.y - 1].show();
 				this.loot = null;
+				this.pickedUpTime = -1;
 			}
 			if (this.timeTrap < 0) {
 				this.timeTrap = control.time;
-			}
-			if (control.time - this.timeTrap > 15) {
+			} else if (control.time - this.timeTrap > robotTrapTime){
 				//hero.killedVillain(this);
 				this.respawn(this.direction, -1);
 				current.switch();
@@ -359,7 +364,7 @@ class Trap extends PassiveActor {
 		this.before.show();
 	}
 	restore() {
-		if (control.time - this.created > 40) {
+		if (control.time - this.created > trapRestoreTime) {
 			const active = control.get(this.x, this.y);
 			if (active instanceof ActiveActor) active.respawn(0, -(this.y));
 			this.before.show();
