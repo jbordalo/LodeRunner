@@ -380,14 +380,15 @@ class Trap extends PassiveActor {
 	}
 	switch() {
 		const active = control.get(this.x, this.y);
-		if (active instanceof ActiveActor) active.respawn(0, -(this.y));
+		let posToFall = control.getBehind(this.x, 0);
+		// This ensures Actors won't spawn inside a block and be lost to the game
+		for (let i = 1; posToFall instanceof Solid; i++) posToFall = control.getBehind(this.x, i);
+		if (active instanceof ActiveActor) active.respawn(0, -this.y - posToFall.y);
 		this.before.show();
 	}
 	restore() {
 		if (control.time - this.created > TRAP_RESTORE_TIME) {
-			const active = control.get(this.x, this.y);
-			if (active instanceof ActiveActor) active.respawn(0, -(this.y));
-			this.before.show();
+			this.switch();
 			return true;
 		}
 		return false;
@@ -556,6 +557,10 @@ class Hero extends ActiveActor {
 				this.move(-(this.direction), 0);
 			}
 		}
+	}
+
+	respawn() {
+		this.die();
 	}
 
 	die() {
