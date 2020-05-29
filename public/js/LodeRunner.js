@@ -148,11 +148,10 @@ class ActiveActor extends Actor {
 	}
 
 	animation(dx, dy) {
-
 		if (!this.fall()) return;
 		try {
 			[dx, dy] = this.setDirection();
-		} catch(e) {
+		} catch (e) {
 			// Actor didn't move, stop animation.
 			return;
 		}
@@ -164,37 +163,39 @@ class ActiveActor extends Actor {
 	}
 
 	show() {
-
-		if (this.isFalling()) {
-			if (this.direction > 0) {
-				this.imageName = this.rightFall();
-			} else {
-				this.imageName = this.leftFall();
-			}
-		} else {
-			const current = control.getBehind(this.x, this.y);
-			if (this.direction >= 0) {
-				if (current instanceof Ladder) {
-					this.imageName = this.rightLadder();
-				} else if (current instanceof Rope) {
-					this.imageName = this.rightRope();
+		console.log(this.constructor.name + " time " + this.time);
+		// TODO Fix first animation form falling
+		if (this.time !== undefined) {
+			if (this.isFalling()) {
+				if (this.direction > 0) {
+					this.imageName = this.rightFall();
 				} else {
-					this.imageName = this.rightRun();
+					this.imageName = this.leftFall();
 				}
 			} else {
-				if (current instanceof Ladder) {
-					this.imageName = this.leftLadder();
-				} else if (current instanceof Rope) {
-					this.imageName = this.leftRope();
+				const current = control.getBehind(this.x, this.y);
+				if (this.direction >= 0) {
+					if (current instanceof Ladder) {
+						this.imageName = this.rightLadder();
+					} else if (current instanceof Rope) {
+						this.imageName = this.rightRope();
+					} else {
+						this.imageName = this.rightRun();
+					}
 				} else {
-					this.imageName = this.leftRun();
+					if (current instanceof Ladder) {
+						this.imageName = this.leftLadder();
+					} else if (current instanceof Rope) {
+						this.imageName = this.leftRope();
+					} else {
+						this.imageName = this.leftRun();
+					}
 				}
 			}
 		}
-
-
 		control.worldActive[this.x][this.y] = this;
 		this.draw(this.x, this.y);
+
 	}
 
 	move(dx, dy) {
@@ -264,11 +265,9 @@ class Villain extends NPC {
 				this.pickedUpTime = control.time;
 			else if (control.time - this.pickedUpTime > GOLD_HOLD_TIME
 				&& control.get(this.x, this.y + 1) instanceof Solid && current instanceof Empty) {
-				this.loot.x = this.x;
-				this.loot.y = this.y;
+				this.loot.setDropPosition(this.x, this.y);
 				super.move(dx, dy);
-				control.world[this.loot.x][this.loot.y] = this.loot;
-				control.world[this.loot.x][this.loot.y].show();
+				this.loot.show();
 				this.loot = null;
 				this.pickedUpTime = -1;
 				return;
@@ -279,10 +278,8 @@ class Villain extends NPC {
 		if (current instanceof Trap) {
 
 			if (this.loot !== null) {
-				control.world[this.x][this.y - 1] = this.loot;
-				this.loot.x = this.x;
-				this.loot.y = this.y - 1;
-				control.world[this.x][this.y - 1].show();
+				this.loot.setDropPosition(this.x, this.y - 1);
+				this.loot.show();
 				this.loot = null;
 				this.pickedUpTime = -1;
 			}
@@ -329,6 +326,11 @@ class Loot extends PassiveActor {
 	pickup() {
 		control.world[this.x][this.y] = empty;
 		return this;
+	}
+
+	setDropPosition(x, y) {
+		this.x = x;
+		this.y = y;
 	}
 
 	fallMode() { return FALL_IN };
@@ -815,7 +817,7 @@ class GameControl {
 
 	nextLevel() {
 		// control.restartLevel();
-		if (control.level+1 > MAPS.length) {
+		if (control.level + 1 > MAPS.length) {
 			return alert("Invalid level " + control.level);
 		}
 		control.level += 1;
@@ -824,7 +826,7 @@ class GameControl {
 
 	previousLevel() {
 		// control.restartLevel();
-		if (control.level-1 < 1){
+		if (control.level - 1 < 1) {
 			return alert("Invalid level " + control.level);
 		}
 		control.level -= 1;
