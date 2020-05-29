@@ -33,7 +33,7 @@ const RIGHT = 1;
 const LEFT = -1;
 
 
-let interface;
+let gui;
 let empty, hero, control, patrimony;
 
 
@@ -484,7 +484,7 @@ class Hero extends ActiveActor {
 
 	setGoldCount(n) {
 		this.goldCount = n;
-		interface.setGoldCount(n);
+		gui.setGoldCount(n);
 	}
 
 	caughtAllGold() {
@@ -505,7 +505,7 @@ class Hero extends ActiveActor {
 		// We need to know if it's actually Gold since it's what the game is about
 		if (loot instanceof Gold) {
 			this.goldCount--;
-			interface.caughtGold();
+			gui.caughtGold();
 		}
 		// However we have functionality to include other loot, just add personalized behavior here if needed
 
@@ -550,14 +550,14 @@ class Hero extends ActiveActor {
 			console.log("Game over");
 			patrimony.reset();
 			control.restartGame();
-			interface.resetScore();
-			interface.resetLives();
+			gui.resetScore();
+			gui.resetLives();
 		} else {
 			console.log("Lost a life");
 			patrimony.decLives();
 			console.log(`I have ${patrimony.getLives()} lives left`);
 			control.restartLevel();
-			interface.died();
+			gui.died();
 		}
 
 	}
@@ -766,7 +766,7 @@ class Patrimony {
 
 	updateScore(n) {
 		this.score += n;
-		interface.updateScore(n);
+		gui.updateScore(n);
 	}
 
 	reset() {
@@ -970,10 +970,10 @@ function onLoad() {
 	// Asynchronously load the images an then run the game
 	GameImages.loadAll(function () { new GameControl(); });
 	// TODO hero?
-	interface = new Interface();
+	gui = new GUI();
 }
 
-class Interface {
+class GUI {
 
 	constructor() {
 		this.audio = null;
@@ -1003,6 +1003,7 @@ class Interface {
 
 	resetGame() {
 		control.restartLevel();
+		this.currentLevel.value = control.level;
 	}
 
 	previousLevel() {

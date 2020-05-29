@@ -42,23 +42,23 @@ para alguns aspetos da implementacao que possam ser menos obvios para o avaliado
           <input
             type="button"
             name="button1"
-            value="Reset"
+            value="Reset level"
             size="10"
-            OnClick="html.resetGame()"
+            OnClick="gui.resetGame()"
           />
           <input
             type="button"
             name="button2"
             value="Previous level"
             size="10"
-            OnClick="html.previousLevel()"
+            OnClick="gui.previousLevel()"
           />
           <input
           type="button"
           name="button3"
           value="Next level"
           size="10"
-          OnClick="html.nextLevel()"
+          OnClick="gui.nextLevel()"
           />
           <label>Current level:</label>
           <input
@@ -72,7 +72,7 @@ para alguns aspetos da implementacao que possam ser menos obvios para o avaliado
       </br>
       <div>
         <label>Robot speed:</label>
-        <input type="range" min="0" max="5" value="2" step="1" list="rangeList" id="robot-speed" oninput="html.slider()">
+        <input type="range" min="0" max="5" value="2" step="1" list="rangeList" id="robot-speed" oninput="gui.slider()">
         <datalist range="rangeList">
           <option>0</option>
           <option>1</option>
@@ -125,14 +125,14 @@ para alguns aspetos da implementacao que possam ser menos obvios para o avaliado
           name="button1"
           value="Play Sound"
           size="10"
-          OnClick="html.playSound()"
+          OnClick="gui.playSound()"
         />
         <input
           type="button"
           name="button1"
           value="Stop Sound"
           size="10"
-          OnClick="html.stopSound()"
+          OnClick="gui.stopSound()"
         />
       </div>
       </p>
