@@ -20,7 +20,7 @@ const GOLD_SCORE = 250;
 const ROBOT_SCORE = 75;
 const ROBOT_TRAP_SCORE = 75;
 const LEVEL_UP_SCORE = 1500;
-const DEFAULT_MAX_LIVES = 3;
+const DEFAULT_MAX_LIVES = 9;
 // ROBOT_SPEED is like a global constant to have hardcoding, however we allowed users to change it so it has to be 'let'
 let ROBOT_SPEED = 2;
 const ROBOT_TRAP_TIME = 15;
@@ -558,9 +558,7 @@ class Hero extends ActiveActor {
 			control.restartGame();
 			gui.resetStats()
 		} else {
-			// console.log("Lost a life");
 			patrimony.decLives();
-			// console.log(`I have ${patrimony.getLives()} lives left`);
 			control.restartLevel();
 			gui.died();
 		}
@@ -570,8 +568,10 @@ class Hero extends ActiveActor {
 	animation(dx, dy) {
 		if (this.win()) {
 			patrimony.updateScore(LEVEL_UP_SCORE);
-			if (!control.level == MAPS.length)
+			if (control.level !== MAPS.length) {
 				control.nextLevel();
+				gui.nextLevel();
+			}
 			else {
 				gui.wonGame();
 			}
@@ -703,7 +703,6 @@ class Robot extends Villain {
 			console.log("Killed the hero");
 			hero.die();
 			return;
-			// control.restartLevel();
 		}
 
 		// If they're on the same Y
@@ -715,11 +714,21 @@ class Robot extends Villain {
 		// If they're not on the same Y
 		else {
 
+			// TODO, removed this and assumed next if is enough
 			// If we're on a rope and hero is underneath us we just jump
-			if ((current instanceof Horizontal && !(under instanceof Solid)) && yDir > 0) {
+			// if ((current instanceof Horizontal && !(under instanceof Solid)) && yDir > 0) {
+			// 	// Removing solid makes it try to jump and get stuck
+			// 	return [0, 1];
+			// }
+
+			// If we can and need to go down, go down
+			// Needed for ropes and jumping off of ladders when they end midair
+			if ((!(under instanceof Solid)) && yDir > 0) {
 				// Removing solid makes it try to jump and get stuck
 				return [0, 1];
 			}
+
+
 			// TODO, GET RID OF THIS.CLOSESTLADDER
 			// Find the closest stairs which go in yDir
 			this.closestVerticalPosition = this.findClosestVertical(this.x, this.y, yDir);
@@ -744,7 +753,7 @@ class Robot extends Villain {
 			}
 			// If we're not on the ladder's column, go towards it
 			else {
-				return [this.x > this.closestVerticalPosition ? -1 : 1, 0];
+				return [this.x > this.closestVerticalPosition ? LEFT : RIGHT, 0];
 			}
 
 		}
@@ -908,7 +917,6 @@ class GameControl {
 
 	respawnTraps() {
 		let len = control.timeout.length;
-		//console.log("len : " + len);
 		for (let x = 0; x < len; x++) {
 			let a = control.timeout[x];
 			if (a instanceof Trap) {
@@ -926,6 +934,7 @@ class GameControl {
 		if (control.changeLevelFlag) {
 			control.changeLevelFlag = false;
 			control.changeLevel();
+			return;
 		}
 
 		// TODO Return after changeLevel???
@@ -1044,6 +1053,8 @@ class GUI {
 
 	wonGame() {
 		alert("Good job, you've beat the game. Go study LAP!");
+		control.restartGame();
+		this.resetStats();
 	}
 
 	playSound() {
