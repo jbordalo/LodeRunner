@@ -646,7 +646,6 @@ class Robot extends Villain {
 		this.dy = 0;
 		this.score = ROBOT_SCORE; // Score the robot gives when killed
 		this.trapScore = ROBOT_TRAP_SCORE; // Score the robot gives when trapped
-
 	}
 
 	rightRun() {
@@ -713,6 +712,7 @@ class Robot extends Villain {
 				}
 			}
 		}
+		if (ladder == -1) console.log("didnt find a ladder");
 		return ladder;
 	}
 
@@ -748,6 +748,7 @@ class Robot extends Villain {
 
 			// Find the closest stairs which go in yDir
 			const closestVerticalPosition = this.findClosestVertical(this.x, this.y, yDir);
+
 			// If we're on the ladder's column
 			if (this.x == closestVerticalPosition) {
 				// We move in yDir except if we can't
@@ -769,6 +770,11 @@ class Robot extends Villain {
 			}
 			// If we're not on the ladder's column, go towards it
 			else {
+				// Unless we can't go, in which case we must try to go towards the hero
+				// Since there might be a way to fall that's not a Vertical
+				if (!this.validMove(this.x > closestVerticalPosition ? LEFT : RIGHT, 0)) {
+					return [xDir, 0];
+				}
 				return [this.x > closestVerticalPosition ? LEFT : RIGHT, 0];
 			}
 
