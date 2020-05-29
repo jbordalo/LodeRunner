@@ -819,19 +819,23 @@ class GameControl {
 	nextLevel() {
 		// control.restartLevel();
 		if (control.level + 1 > MAPS.length) {
-			return alert("Invalid level " + control.level);
+			alert("Invalid level " + control.level);
+			return false;
 		}
 		control.level += 1;
 		control.changeLevel = true;
+		return true;
 	}
 
 	previousLevel() {
 		// control.restartLevel();
 		if (control.level - 1 < 1) {
-			return alert("Invalid level " + control.level);
+			alert("Invalid level " + control.level);
+			return false;
 		}
 		control.level -= 1;
 		control.changeLevel = true;
+		return true;
 	}
 
 	loadLevel(level) {
@@ -954,13 +958,13 @@ class HTMLHandling {
 		this.goldCount = document.getElementById("gold");
 		this.lodeRunners = document.getElementById("loderunners");
 		this.robotSpeedSlider = document.getElementById("robot-speed");
+		this.currentLevel = document.getElementById("current-level");
 		this.resetLives();
 		this.resetScore();
 	}
 
 	slider() {
 		console.log(this.robotSpeedSlider.value);
-
 		// +1 so that 0 becomes 1 and robots are stopped
 		ROBOT_SPEED = parseInt(this.robotSpeedSlider.value, 10) + 1;
 
@@ -978,9 +982,15 @@ class HTMLHandling {
 		control.restartLevel();
 	}
 
-	previousLevel() { control.previousLevel(); }
+	previousLevel() {
+		if (control.previousLevel())
+			this.currentLevel.value = parseInt(this.currentLevel.value, 10) - 1;
+	}
 
-	nextLevel() { control.nextLevel(); }
+	nextLevel() {
+		if (control.nextLevel())
+			this.currentLevel.value = parseInt(this.currentLevel.value, 10) + 1;
+	}
 
 	resetScore() {
 		this.scoreBoard.value = 0;
