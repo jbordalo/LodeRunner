@@ -521,7 +521,9 @@ class Hero extends ActiveActor {
 	}
 
 	shoot() {
-		if (control.get(this.x + this.direction, this.y) instanceof Empty && control.getBehind(this.x, this.y) instanceof Empty) {
+		// We use Empty - making sure we don't shoot under anything else like chimneys and hidden ladders 
+		// This is the case because when robots drop gold we don't override important markers.
+		if (control.get(this.x + this.direction, this.y) instanceof Empty && control.getBehind(this.x, this.y).fallMode() === FALL_THROUGH) {
 			control.getBehind(this.x + this.direction, this.y + 1).destroy();
 			this.show(); //?? maybe keep this here
 			if (!(control.get(this.x - this.direction, this.y) instanceof Solid)) {
