@@ -65,7 +65,7 @@ class Actor {
 	}
 
 	validMove(dx, dy) {
-		let next = control.get(this.x + dx, this.y + dy);
+		const next = control.get(this.x + dx, this.y + dy);
 		return !(next instanceof Solid)
 			// We are assuming a Hero can't go against another hero, Robot against another Robot, etc 
 			&& !(next.constructor == control.get(this.x, this.y).constructor);
@@ -105,13 +105,13 @@ class PassiveActor extends Actor {
 
 	destroy() {
 		if (this.destructable()) {
-			let trap = new Trap(this.x, this.y, this);
+			const trap = new Trap(this.x, this.y, this);
 			control.world[this.x][this.y] = trap;
 			trap.draw(this.x, this.y);
+			// Timeout has the objects that will respawn/restore
 			control.timeout.push(trap);
 		}
 	}
-
 }
 
 class ActiveActor extends Actor {
@@ -132,20 +132,23 @@ class ActiveActor extends Actor {
 		super.move(dx, dy);
 	}
 
-	// TODO
+
 	isFalling() {
-		// TODO One does not fall when on a horizontal passage and when this actor is trapped
 		const behind = control.getBehind(this.x, this.y);
 		const under = control.get(this.x, this.y + 1);
-		return ((behind.fallMode() == FALL_THROUGH && (under.fallMode() !== FALL_ON))
+		// One falls if:
+		return ((behind.fallMode() == FALL_THROUGH // the block we're at allows you to fall through
+			&& (under.fallMode() !== FALL_ON))	// the block under you isn't a block you fall on i.e. platform, ladder...
+			// OR if we're on a trap AND we don't fall in it by default and underneath us isn't a platform like block
 			|| (behind instanceof Trap && this.trapMode() !== FALL_IN && under.fallMode() !== FALL_ON)
-		);//|| (under instanceof Horizontal && behind instanceof Empty));
+		);
 	}
 
 	fall() {
 		if (this.isFalling()) {
-			//TODO 
 			const current = control.getBehind(this.x, this.y);
+
+			// Allow loot to be catchable mid-air
 			if (current instanceof Loot) {
 				this.catchLoot();
 			}
@@ -171,13 +174,15 @@ class ActiveActor extends Actor {
 			return;
 		}
 
+		// Set the direction the actor is pointing at
 		if (dx !== 0)
-			this.direction = dx / Math.abs(dx);
+			this.direction = dx / Math.abs(dx); // fancy
 
 		this.move(dx, dy);
 	}
 
 	show() {
+		// Time is starting as undefined even if we redefine this.time = 0 in hero so we're testing for undefined
 		if (this.time !== undefined) {
 			if (this.isFalling()) {
 				if (this.direction > 0) {
@@ -206,6 +211,7 @@ class ActiveActor extends Actor {
 				}
 			}
 		}
+
 		control.worldActive[this.x][this.y] = this;
 		this.draw(this.x, this.y);
 
@@ -215,7 +221,6 @@ class ActiveActor extends Actor {
 
 		// Respect world boundaries
 		if (!this.validMove(dx, dy)) {
-			//console.log("Respect world boundaries");
 			return;
 		}
 
@@ -251,7 +256,6 @@ class Villain extends NPC {
 		this.timeTrap = -1;
 		this.loot = null;
 		this.pickedUpTime = -1;
-		// TODO have a score here? or just defined inside each specific villain. or add here AND redefine?
 		this.score = 0;
 		this.trapScore = 0;
 	}
@@ -268,8 +272,6 @@ class Villain extends NPC {
 
 	move(dx, dy) {
 		const current = control.getBehind(this.x, this.y);
-
-		// TODO maybe this statement should be under trap? cause we know that if we fall in a trap we drop it
 
 		// If we're holding loot
 		if (this.loot !== null) {
@@ -288,7 +290,6 @@ class Villain extends NPC {
 		}
 
 		if (current instanceof Trap) {
-
 			if (this.loot !== null) {
 				this.loot.setDropPosition(this.x, this.y - 1);
 				this.loot.show();
@@ -328,7 +329,8 @@ class Vertical extends Passage {
 // Horizontal passages that allow horizontal movement
 class Horizontal extends Passage { fallMode() { return FALL_IN }; }
 
-// Passive actors which you can't stand on
+// Passive actors which you can't stand on, almost a marker class
+// Objects which extend this don't have to redefine their default fallmode
 class FallThrough extends PassiveActor {
 	fallMode() {
 		return FALL_THROUGH;
@@ -347,10 +349,10 @@ class Loot extends PassiveActor {
 		this.y = y;
 	}
 
-	fallMode() { return FALL_IN };
+	fallMode() { return FALL_THROUGH };
 }
 
-class Brick extends Solid { //, Destructible {
+class Brick extends Solid {
 	constructor(x, y) { super(x, y, "brick"); }
 	destructable() {
 		return true;
@@ -382,11 +384,16 @@ class Trap extends PassiveActor {
 	fallMode() {
 		return FALL_IN;
 	}
+
+	// Restores trap block without trap restore time passing, i.e. when villain leaves before restore time of trap
 	switch() {
 		const active = control.get(this.x, this.y);
 		let posToFall = control.getBehind(this.x, 0);
-		// This ensures Actors won't spawn inside a block and be lost to the game
-		for (let i = 1; posToFall instanceof Solid; i++) posToFall = control.getBehind(this.x, i);
+
+		// This loop ensures Actors won't spawn inside a block and be lost to the game
+		for (let i = 1; posToFall instanceof Solid; i++)
+			posToFall = control.getBehind(this.x, i);
+
 		if (active instanceof ActiveActor) active.respawn(0, -this.y - posToFall.y);
 		this.before.show();
 	}
@@ -400,9 +407,6 @@ class Trap extends PassiveActor {
 }
 class Gold extends Loot {
 	constructor(x, y) { super(x, y, "gold"); this.score = GOLD_SCORE; }
-	fallMode() {
-		return FALL_THROUGH;
-	}
 }
 
 class Invalid extends PassiveActor {
@@ -432,6 +436,7 @@ class Ladder extends Vertical {
 	}
 }
 
+// Marks the spots where the victory ladder will appear
 class HiddenLadder extends PassiveActor {
 	constructor(x, y) {
 		super(x, y, "empty");
@@ -444,8 +449,8 @@ class HiddenLadder extends PassiveActor {
 	}
 
 	showLadder() {
-		const x = new Ladder(this.x, this.y);
-		x.makeVisible();
+		const newLadder = new Ladder(this.x, this.y);
+		newLadder.makeVisible();
 	}
 }
 
@@ -513,7 +518,7 @@ class Hero extends ActiveActor {
 		return FALL_IN;
 	}
 
-	win() {
+	checkWin() {
 		//TODO instanceof Vertical
 		return (this.caughtAllGold() && this.y == 0 && (control.getBehind(this.x, this.y) instanceof Ladder));
 	}
@@ -548,30 +553,33 @@ class Hero extends ActiveActor {
 	shoot() {
 		// We use Empty - making sure we don't shoot under anything else like chimneys and hidden ladders 
 		// This is the case because when robots drop gold we don't override important markers.
-		// TODO
 		const behind = control.getBehind(this.x, this.y);
 		const aboveTarget = control.get(this.x + this.direction, this.y);
 		const target = control.getBehind(this.x + this.direction, this.y + 1);
+		const recoilTarget = control.get(this.x - this.direction, this.y);
+
 		if (!aboveTarget.isVisible()
 			&& (behind.fallMode() === FALL_THROUGH || !behind.isVisible())) {
 			target.destroy();
 			this.shot = true;
 			this.show(); //?? maybe keep this here
 		}
-		if (!(aboveTarget instanceof Solid)) {
-			const recoil = control.get(this.x - this.direction, this.y + 1);
-			if (recoil instanceof Solid || recoil instanceof Ladder) {
+		if (!(recoilTarget instanceof Solid)) {
+			const recoilFloor = control.get(this.x - this.direction, this.y + 1);
+			if (recoilFloor instanceof Solid || recoilFloor instanceof Vertical) {
 				this.shot = true;
 				this.move(-(this.direction), 0);
 			}
 		}
 	}
 
+	// Redefine trap respawn to actually die when it's a hero
 	respawn() {
 		this.die();
 	}
 
 	die() {
+		// If it's the hero's last life and he died, it's game over
 		if (patrimony.lives === 1) {
 			console.log("Game over");
 			patrimony.reset();
@@ -582,11 +590,10 @@ class Hero extends ActiveActor {
 			control.restartLevel();
 			gui.died();
 		}
-
 	}
 
 	animation(dx, dy) {
-		if (this.win()) {
+		if (this.checkWin()) {
 			patrimony.updateScore(LEVEL_UP_SCORE);
 			if (control.level !== MAPS.length) {
 				control.nextLevel();
@@ -637,7 +644,6 @@ class Robot extends Villain {
 		super(x, y, "robot_runs_right");
 		this.dx = 1;
 		this.dy = 0;
-		this.closestVerticalPosition = -1;
 		this.score = ROBOT_SCORE; // Score the robot gives when killed
 		this.trapScore = ROBOT_TRAP_SCORE; // Score the robot gives when trapped
 
@@ -727,19 +733,11 @@ class Robot extends Villain {
 
 		// If they're on the same Y
 		if (this.y == hero.y) {
-			// Robot walks in x direction
-			// console.log("Going in the x direction!");
+			// Robot walks in x direction if on same level with the hero
 			return [xDir, 0];
 		}
 		// If they're not on the same Y
 		else {
-
-			// TODO, removed this and assumed next if is enough
-			// If we're on a rope and hero is underneath us we just jump
-			// if ((current instanceof Horizontal && !(under instanceof Solid)) && yDir > 0) {
-			// 	// Removing solid makes it try to jump and get stuck
-			// 	return [0, 1];
-			// }
 
 			// If we can and need to go down, go down
 			// Needed for ropes and jumping off of ladders when they end midair
@@ -748,12 +746,10 @@ class Robot extends Villain {
 				return [0, 1];
 			}
 
-
-			// TODO, GET RID OF THIS.CLOSESTLADDER
 			// Find the closest stairs which go in yDir
-			this.closestVerticalPosition = this.findClosestVertical(this.x, this.y, yDir);
+			const closestVerticalPosition = this.findClosestVertical(this.x, this.y, yDir);
 			// If we're on the ladder's column
-			if (this.x == this.closestVerticalPosition) {
+			if (this.x == closestVerticalPosition) {
 				// We move in yDir except if we can't
 
 				// We can't if:
@@ -773,7 +769,7 @@ class Robot extends Villain {
 			}
 			// If we're not on the ladder's column, go towards it
 			else {
-				return [this.x > this.closestVerticalPosition ? LEFT : RIGHT, 0];
+				return [this.x > closestVerticalPosition ? LEFT : RIGHT, 0];
 			}
 
 		}
@@ -818,8 +814,8 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.ctx = document.getElementById("canvas1").getContext("2d");
-		empty = new Empty();	// only one empty actor needed
-		this.boundary = new Boundary();
+		empty = new Empty(); // only one empty actor needed
+		this.boundary = new Boundary(); // only one boundary actor needed
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
 		this.timeout = [];
@@ -957,8 +953,6 @@ class GameControl {
 			return;
 		}
 
-		// TODO Return after changeLevel???
-
 		control.showHiddenLadder();
 
 		control.time++;
@@ -1005,7 +999,6 @@ class GameControl {
 function onLoad() {
 	// Asynchronously load the images an then run the game
 	GameImages.loadAll(function () { new GameControl(); });
-	// TODO hero?
 	gui = new GUI();
 }
 
@@ -1038,9 +1031,8 @@ class GUI {
 	}
 
 	// Reset level button
-	resetGame() {
+	resetLevel() {
 		control.restartLevel();
-		// this.currentLevel.value = control.level;
 	}
 
 	previousLevel() {
@@ -1081,7 +1073,7 @@ class GUI {
 		if (this.audio == null)
 			this.audio = new Audio("http://ctp.di.fct.unl.pt/miei/lap/projs/proj2020-3/files/louiscole.m4a");
 		this.audio.loop = true;
-		this.audio.play();  // requires a previous user interaction with the page
+		this.audio.play();
 	}
 
 	stopSound() {
