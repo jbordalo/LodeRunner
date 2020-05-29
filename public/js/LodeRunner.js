@@ -15,7 +15,8 @@ CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
 
 const GOLD_SCORE = 100;
 const ROBOT_SCORE = 100;
-const DEFAULT_MAX_LIVES = 3;
+const DEFAULT_MAX_LIVES = 2;
+let ROBOT_SPEED = 2;
 
 const ROBOT_TRAP_TIME = 15;
 const TRAP_RESTORE_TIME = 40;
@@ -635,7 +636,7 @@ class Robot extends Villain {
 	animation(dx, dy) {
 
 		// Reduce robot speed
-		if (this.time % 2 == 0)
+		if (this.time % ROBOT_SPEED == 0)
 			return;
 
 		super.animation(dx, dy);
@@ -952,8 +953,17 @@ class HTMLHandling {
 		this.scoreBoard = document.getElementById("score");
 		this.goldCount = document.getElementById("gold");
 		this.lodeRunners = document.getElementById("loderunners");
+		this.robotSpeedSlider = document.getElementById("robot-speed");
 		this.resetLives();
 		this.resetScore();
+	}
+
+	slider() {
+		console.log(this.robotSpeedSlider.value);
+
+		// +1 so that 0 becomes 1 and robots are stopped
+		ROBOT_SPEED = parseInt(this.robotSpeedSlider.value, 10) + 1;
+
 	}
 
 	died() {

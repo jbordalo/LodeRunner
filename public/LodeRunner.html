@@ -37,43 +37,45 @@ para alguns aspetos da implementacao que possam ser menos obvios para o avaliado
         Your browser doesn't support the HTML5 CANVAS tag.
       </canvas>
       <p>
-        <input
+        <div id="gameLevelRegion">
+          <input
+            type="button"
+            name="button1"
+            value="Reset"
+            size="10"
+            OnClick="html.resetGame()"
+          />
+          <input
+            type="button"
+            name="button2"
+            value="Previous level"
+            size="10"
+            OnClick="html.previousLevel()"
+          />
+          <input
           type="button"
-          name="button1"
-          value="Reset"
+          name="button3"
+          value="Next level"
           size="10"
-          OnClick="html.resetGame()"
-        />
-        <input
-          type="button"
-          name="button2"
-          value="Previous level"
-          size="10"
-          OnClick="html.previousLevel()"
-        />
-        <input
-        type="button"
-        name="button3"
-        value="Next level"
-        size="10"
-        OnClick="html.nextLevel()"
-        />
-      </br></br>
-      <input
-      type="button"
-      name="button2"
-      value="Previous level"
-      size="10"
-      OnClick="html.previousLevel()"
-      />
-      <input
-      type="button"
-      name="button3"
-      value="Next level"
-      size="10"
-      OnClick="html.nextLevel()"
-      />
-      </br></br>
+          OnClick="html.nextLevel()"
+          />
+        </div>
+      </br>
+      <div>
+        <label>Robot speed:</label>
+        <input type="range" min="0" max="5" value="2" step="1" list="rangeList" id="robot-speed" oninput="html.slider()">
+        <datalist range="rangeList">
+          <option>0</option>
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+        </datalist>
+      </div>
+
+      </br>
+      <div>
         <label>Score:</label>
         <input
           value="0"
@@ -82,7 +84,9 @@ para alguns aspetos da implementacao que possam ser menos obvios para o avaliado
           readonly
           style="text-align: right;"
         />
-      </br></br>
+      </div>
+      </br>
+      <div>
         <label>Gold Count:</label>
         <input
           value="0"
@@ -91,7 +95,10 @@ para alguns aspetos da implementacao que possam ser menos obvios para o avaliado
           readonly
           style="text-align: right;"
         />
-      </br></br>
+      </div>
+      </br>
+      <div>
+
         <label>Lode Runners:</label>
         <input
         value=""
@@ -100,7 +107,10 @@ para alguns aspetos da implementacao que possam ser menos obvios para o avaliado
         readonly
         style="text-align: right;"
       />
-      </br></br>
+      </div>
+      </br>
+      <div id="audioRegion">
+
         <input
           type="button"
           name="button1"
@@ -115,6 +125,7 @@ para alguns aspetos da implementacao que possam ser menos obvios para o avaliado
           size="10"
           OnClick="html.stopSound()"
         />
+      </div>
       </p>
     </form>
   </body>
