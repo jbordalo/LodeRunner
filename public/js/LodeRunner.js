@@ -6,6 +6,12 @@ Joao Bordalo 55697
 TODO
 CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
 
+-We have decided to let the animation for shot continue even if we recoil into a
+ladder since we're still holding the gun and it doesn't mean we'll have to go up
+the ladder.
+- We assumed a type of Actor can't move against one of its own type
+- 
+
 01234567890123456789012345678901234567890123456789012345678901234567890123456789
 */
 
@@ -17,25 +23,24 @@ const LEVEL_UP_SCORE = 1500;
 const DEFAULT_MAX_LIVES = 3;
 // ROBOT_SPEED is like a global constant to have hardcoding, however we allowed users to change it so it has to be 'let'
 let ROBOT_SPEED = 2;
+const ROBOT_TRAP_TIME = 15;
+const TRAP_RESTORE_TIME = 40;
+const GOLD_HOLD_TIME = 10;
+
+// For handling falling situations
+const FALL_THROUGH = -1;
+const FALL_ON = 0;
+const FALL_IN = 1;
+
+// For better readability
+const RIGHT = 1;
+const LEFT = -1;
 
 // GLOBAL VARIABLES
 
 // tente não definir mais nenhuma variável global
 
-
-const ROBOT_TRAP_TIME = 15;
-const TRAP_RESTORE_TIME = 40;
-const GOLD_HOLD_TIME = 10;
-
-const FALL_THROUGH = -1;
-const FALL_ON = 0;
-const FALL_IN = 1;
-
-const RIGHT = 1;
-const LEFT = -1;
-
-
-let gui;
+let gui; // For the interface
 let empty, hero, control, patrimony;
 
 
@@ -62,7 +67,7 @@ class Actor {
 	validMove(dx, dy) {
 		let next = control.get(this.x + dx, this.y + dy);
 		return !(next instanceof Solid)
-			// We are assuming a Hero can't go agaisnt another hero, Robot against another Robot, etc 
+			// We are assuming a Hero can't go against another hero, Robot against another Robot, etc 
 			&& !(next.constructor == control.get(this.x, this.y).constructor);
 	}
 
