@@ -548,6 +548,7 @@ class Hero extends ActiveActor {
 			&& (behind.fallMode() === FALL_THROUGH ||
 				(behind instanceof Trap && this.trapMode() === FALL_THROUGH))) {
 			control.getBehind(this.x + this.direction, this.y + 1).destroy();
+			this.shot = true;
 			this.show(); //?? maybe keep this here
 		}
 		if (!(control.get(this.x - this.direction, this.y) instanceof Solid)) {
