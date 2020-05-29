@@ -365,6 +365,9 @@ class Empty extends FallThrough {
 	constructor() { super(-1, -1, "empty"); }
 	show() { }
 	hide() { }
+	isVisible() {
+		return false;
+	}
 }
 
 class Trap extends PassiveActor {
@@ -372,6 +375,9 @@ class Trap extends PassiveActor {
 		super(x, y, "empty");
 		this.before = object;
 		this.created = control.time;
+	}
+	isVisible() {
+		return false;
 	}
 	fallMode() {
 		return FALL_IN;
@@ -430,7 +436,9 @@ class HiddenLadder extends PassiveActor {
 	constructor(x, y) {
 		super(x, y, "empty");
 	}
-
+	isVisible() {
+		return false;
+	}
 	fallMode() {
 		return FALL_THROUGH;
 	}
@@ -544,15 +552,14 @@ class Hero extends ActiveActor {
 		const behind = control.getBehind(this.x, this.y);
 		const aboveTarget = control.get(this.x + this.direction, this.y);
 		const target = control.getBehind(this.x + this.direction, this.y + 1);
-		if (aboveTarget instanceof Empty || aboveTarget instanceof Trap
-			&& (behind.fallMode() === FALL_THROUGH ||
-				(behind instanceof Trap && this.trapMode() === FALL_THROUGH))) {
+		if (!aboveTarget.isVisible()
+			&& (behind.fallMode() === FALL_THROUGH || !behind.isVisible())) {
 			target.destroy();
 			this.shot = true;
 			this.show(); //?? maybe keep this here
 		}
-		if (!(control.get(this.x - this.direction, this.y) instanceof Solid)) {
-			let recoil = control.get(this.x - this.direction, this.y + 1);
+		if (!(aboveTarget instanceof Solid)) {
+			const recoil = control.get(this.x - this.direction, this.y + 1);
 			if (recoil instanceof Solid || recoil instanceof Ladder) {
 				this.shot = true;
 				this.move(-(this.direction), 0);
