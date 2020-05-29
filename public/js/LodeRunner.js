@@ -533,8 +533,11 @@ class Hero extends ActiveActor {
 	shoot() {
 		// We use Empty - making sure we don't shoot under anything else like chimneys and hidden ladders 
 		// This is the case because when robots drop gold we don't override important markers.
+		// TODO
+		const behind = control.getBehind(this.x, this.y);
 		if (control.get(this.x + this.direction, this.y) instanceof Empty
-			&& control.getBehind(this.x, this.y).fallMode() === FALL_THROUGH) {
+			&& (behind.fallMode() === FALL_THROUGH || 
+			(behind instanceof Trap && this.trapMode() === FALL_THROUGH))) {
 			control.getBehind(this.x + this.direction, this.y + 1).destroy();
 			this.show(); //?? maybe keep this here
 			if (!(control.get(this.x - this.direction, this.y) instanceof Solid)) {
