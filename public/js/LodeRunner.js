@@ -83,9 +83,7 @@ class Actor {
 
 		this.show();
 	}
-
 }
-
 
 class PassiveActor extends Actor {
 	show() {
@@ -544,10 +542,12 @@ class Hero extends ActiveActor {
 		// This is the case because when robots drop gold we don't override important markers.
 		// TODO
 		const behind = control.getBehind(this.x, this.y);
-		if (control.get(this.x + this.direction, this.y) instanceof Empty
+		const aboveTarget = control.get(this.x + this.direction, this.y);
+		const target = control.getBehind(this.x + this.direction, this.y + 1);
+		if (aboveTarget instanceof Empty || aboveTarget instanceof Trap
 			&& (behind.fallMode() === FALL_THROUGH ||
 				(behind instanceof Trap && this.trapMode() === FALL_THROUGH))) {
-			control.getBehind(this.x + this.direction, this.y + 1).destroy();
+			target.destroy();
 			this.shot = true;
 			this.show(); //?? maybe keep this here
 		}
