@@ -146,6 +146,11 @@ class ActiveActor extends Actor {
 
 	fall() {
 		if (this.isFalling()) {
+			//TODO 
+			const current = control.getBehind(this.x, this.y);
+			if (current instanceof Loot) {
+				this.catchLoot();
+			}
 			super.move(0, 1);
 			return false;
 		}
@@ -390,6 +395,9 @@ class Trap extends PassiveActor {
 }
 class Gold extends Loot {
 	constructor(x, y) { super(x, y, "gold"); this.score = GOLD_SCORE; }
+	fallMode() {
+		return FALL_THROUGH;
+	}
 }
 
 class Invalid extends PassiveActor {
@@ -536,17 +544,16 @@ class Hero extends ActiveActor {
 		// TODO
 		const behind = control.getBehind(this.x, this.y);
 		if (control.get(this.x + this.direction, this.y) instanceof Empty
-			&& (behind.fallMode() === FALL_THROUGH || 
-			(behind instanceof Trap && this.trapMode() === FALL_THROUGH))) {
+			&& (behind.fallMode() === FALL_THROUGH ||
+				(behind instanceof Trap && this.trapMode() === FALL_THROUGH))) {
 			control.getBehind(this.x + this.direction, this.y + 1).destroy();
 			this.show(); //?? maybe keep this here
-			if (!(control.get(this.x - this.direction, this.y) instanceof Solid)) {
-				let recoil = control.get(this.x - this.direction, this.y + 1);
-
-				if (recoil instanceof Solid || recoil instanceof Ladder) {
-					this.shot = true;
-					this.move(-(this.direction), 0);
-				}
+		}
+		if (!(control.get(this.x - this.direction, this.y) instanceof Solid)) {
+			let recoil = control.get(this.x - this.direction, this.y + 1);
+			if (recoil instanceof Solid || recoil instanceof Ladder) {
+				this.shot = true;
+				this.move(-(this.direction), 0);
 			}
 		}
 	}
