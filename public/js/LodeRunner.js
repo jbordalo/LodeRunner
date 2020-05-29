@@ -9,17 +9,19 @@ CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
 01234567890123456789012345678901234567890123456789012345678901234567890123456789
 */
 
-// GLOBAL VARIABLES
-
-// tente não definir mais nenhuma variável global
-
+// CONSTANTS
 const GOLD_SCORE = 250;
 const ROBOT_SCORE = 75;
 const ROBOT_TRAP_SCORE = 75;
 const LEVEL_UP_SCORE = 1500;
-const DEFAULT_MAX_LIVES = 2;
-// TODO Acts like a constant but it's changed through the GUI.
+const DEFAULT_MAX_LIVES = 3;
+// ROBOT_SPEED is like a global constant to have hardcoding, however we allowed users to change it so it has to be 'let'
 let ROBOT_SPEED = 2;
+
+// GLOBAL VARIABLES
+
+// tente não definir mais nenhuma variável global
+
 
 const ROBOT_TRAP_TIME = 15;
 const TRAP_RESTORE_TIME = 40;
@@ -69,12 +71,10 @@ class Actor {
 			console.log("Respect world boundaries");
 			return;
 		}
+
 		this.hide();
 		this.x += dx;
 		this.y += dy;
-
-		// if (dx !== 0)
-		// 	this.direction = dx / Math.abs(dx);
 
 		this.show();
 	}
@@ -170,7 +170,6 @@ class ActiveActor extends Actor {
 	}
 
 	show() {
-		// TODO Fix first animation form falling
 		if (this.time !== undefined) {
 			if (this.isFalling()) {
 				if (this.direction > 0) {
@@ -216,11 +215,11 @@ class ActiveActor extends Actor {
 		const next = control.getBehind(this.x + dx, this.y + dy);
 		const current = control.getBehind(this.x, this.y);
 
-		// dy bigger than zero stops Actors from jumping onto a ladder without being on one
 		if (current instanceof Loot) {
 			this.catchLoot();
 		}
 
+		// dy bigger than zero stops Actors from jumping onto a ladder without being on one
 		if (!((next instanceof Vertical && dy > 0) || current instanceof Vertical)) {
 			if (!(dy > 0 && current instanceof Horizontal)) {
 				dy = 0;
@@ -233,9 +232,8 @@ class ActiveActor extends Actor {
 
 }
 
-// Active actors not controlled by humans
+// Active actors not controlled by humans, marker class
 class NPC extends ActiveActor {
-	// label?
 }
 
 //Bad NPC
@@ -256,7 +254,6 @@ class Villain extends NPC {
 
 		console.assert(behind instanceof Loot);
 
-		// behind.pickup();
 		this.loot = behind.pickup();
 
 	}
@@ -305,15 +302,16 @@ class Villain extends NPC {
 	}
 }
 
+// Marker class
 class Solid extends PassiveActor { }
 
+// Marker class
 class Passage extends PassiveActor { }
 
 // Vertical passages that allow vertical movement
 class Vertical extends Passage {
-	// To check if this Ladder allows going in the direction given
+	// To check if this Vertical allows going in the direction given
 	canGoDir(lambda) {
-		// return control.world[this.x][this.y + lambda] instanceof Ladder;
 		return control.getBehind(this.x, this.y + lambda) instanceof Vertical;
 	}
 
@@ -550,12 +548,11 @@ class Hero extends ActiveActor {
 			console.log("Game over");
 			patrimony.reset();
 			control.restartGame();
-			gui.resetScore();
-			gui.resetLives();
+			gui.resetStats()
 		} else {
-			console.log("Lost a life");
+			// console.log("Lost a life");
 			patrimony.decLives();
-			console.log(`I have ${patrimony.getLives()} lives left`);
+			// console.log(`I have ${patrimony.getLives()} lives left`);
 			control.restartLevel();
 			gui.died();
 		}
@@ -565,7 +562,11 @@ class Hero extends ActiveActor {
 	animation(dx, dy) {
 		if (this.win()) {
 			patrimony.updateScore(LEVEL_UP_SCORE);
-			control.nextLevel();
+			if (!control.level == MAPS.length)
+				control.nextLevel();
+			else {
+				gui.wonGame();
+			}
 		}
 		super.animation(dx, dy);
 	}
@@ -581,7 +582,8 @@ class Hero extends ActiveActor {
 		if (this.shot) {
 			this.shot = false;
 
-			if (this.direction > 0) //animation
+			// Animation
+			if (this.direction > 0)
 				this.imageName = "hero_shoots_right";
 			else this.imageName = "hero_shoots_left";
 
@@ -596,7 +598,6 @@ class Hero extends ActiveActor {
 	setDirection() {
 		var k = control.getKey();
 		if (k == ' ') { this.shoot(); return; }
-		// TODO
 		if (k == null) return;
 		return k;
 	}
@@ -610,7 +611,7 @@ class Robot extends Villain {
 		this.dy = 0;
 		this.closestVerticalPosition = -1;
 		this.score = ROBOT_SCORE; // Score the robot gives when killed
-		this.trapScore = ROBOT_TRAP_SCORE;
+		this.trapScore = ROBOT_TRAP_SCORE; // Score the robot gives when trapped
 
 	}
 
@@ -658,7 +659,8 @@ class Robot extends Villain {
 
 	findClosestVertical(x, y, lambda) {
 
-		let dist = 999999; // Bigger than it could get
+		// Bigger than it could get
+		let dist = 999999;
 		let ladder = -1;
 
 		for (let i = 0; i < WORLD_WIDTH; i++) {
@@ -669,19 +671,15 @@ class Robot extends Villain {
 					dist = Math.abs(x - i);
 					ladder = i;
 				}
-				// return i;
 			}
 			if (b instanceof Vertical && b.canGoDir(lambda)) {
 				if (Math.abs(x - i) < dist) {
 					dist = Math.abs(x - i);
 					ladder = i;
 				}
-				// return i;
 			}
 		}
 		return ladder;
-		// console.log("Didn't find a ladder!");
-		// return -1;
 	}
 
 	setDirection() {
@@ -714,7 +712,7 @@ class Robot extends Villain {
 				// Removing solid makes it try to jump and get stuck
 				return [0, 1];
 			}
-
+			// TODO, GET RID OF THIS.CLOSESTLADDER
 			// Find the closest stairs which go in yDir
 			this.closestVerticalPosition = this.findClosestVertical(this.x, this.y, yDir);
 			// If we're on the ladder's column
@@ -820,20 +818,16 @@ class GameControl {
 	}
 
 	restartLevel() {
-		// control.loadLevel(control.level);
 		control.changeLevelFlag = true;
 	}
 
 	restartGame() {
 		control.level = 1;
-		// control.restartLevel();
 		control.changeLevelFlag = true;
 	}
 
 	nextLevel() {
-		// control.restartLevel();
 		if (control.level + 1 > MAPS.length) {
-			alert("Invalid level " + control.level);
 			return false;
 		}
 		control.level += 1;
@@ -842,9 +836,7 @@ class GameControl {
 	}
 
 	previousLevel() {
-		// control.restartLevel();
 		if (control.level - 1 < 1) {
-			alert("Invalid level " + control.level);
 			return false;
 		}
 		control.level -= 1;
@@ -857,13 +849,17 @@ class GameControl {
 			fatalError("Invalid level " + level)
 		let map = MAPS[level - 1];  // -1 because levels start at 1
 
-		let gc = 0; // So we don't access the hero more times than we need.
+		// So we don't access the hero more times than we need.
+		let gc = 0;
 
 		for (let x = 0; x < WORLD_WIDTH; x++)
 			for (let y = 0; y < WORLD_HEIGHT; y++) {
 				// x/y reversed because map stored by lines
 				let o = GameFactory.actorFromCode(map[y][x], x, y);
+				// Count how many golds there are, must be golds 
+				// exactly, not loot, since it's what matters for winning the game
 				if (o instanceof Gold) gc++;
+				// Dealing with the invisible ladders
 				if (o instanceof Ladder && !o.isVisible()) new HiddenLadder(x, y);
 			}
 		hero.setGoldCount(gc);
@@ -918,10 +914,13 @@ class GameControl {
 
 	animationEvent() {
 
+		// If the change level flag is set we change level
 		if (control.changeLevelFlag) {
 			control.changeLevelFlag = false;
 			control.changeLevel();
 		}
+
+		// TODO Return after changeLevel???
 
 		control.showHiddenLadder();
 
@@ -974,7 +973,6 @@ function onLoad() {
 }
 
 class GUI {
-
 	constructor() {
 		this.audio = null;
 		this.scoreBoard = document.getElementById("score");
@@ -982,8 +980,7 @@ class GUI {
 		this.lodeRunners = document.getElementById("loderunners");
 		this.robotSpeedSlider = document.getElementById("robot-speed");
 		this.currentLevel = document.getElementById("current-level");
-		this.resetLives();
-		this.resetScore();
+		this.resetStats();
 	}
 
 	slider() {
@@ -997,27 +994,32 @@ class GUI {
 		this.lodeRunners.value = parseInt(this.lodeRunners.value, 10) - 1;
 	}
 
-	resetLives() {
+	resetStats() {
+		this.currentLevel.value = 1;
+		this.scoreBoard.value = 0;
 		this.lodeRunners.value = DEFAULT_MAX_LIVES;
 	}
 
+	// Reset level button
 	resetGame() {
 		control.restartLevel();
-		this.currentLevel.value = control.level;
+		// this.currentLevel.value = control.level;
 	}
 
 	previousLevel() {
 		if (control.previousLevel())
 			this.currentLevel.value = parseInt(this.currentLevel.value, 10) - 1;
+		else {
+			alert("Invalid level " + (control.level - 1));
+		}
 	}
 
 	nextLevel() {
 		if (control.nextLevel())
 			this.currentLevel.value = parseInt(this.currentLevel.value, 10) + 1;
-	}
-
-	resetScore() {
-		this.scoreBoard.value = 0;
+		else {
+			alert("Invalid level " + (control.level + 1));
+		}
 	}
 
 	updateScore(n) {
@@ -1030,6 +1032,10 @@ class GUI {
 
 	caughtGold() {
 		this.goldCount.value = parseInt(this.goldCount.value, 10) - 1;
+	}
+
+	wonGame() {
+		alert("Good job, you've beat the game. Go study LAP!");
 	}
 
 	playSound() {
