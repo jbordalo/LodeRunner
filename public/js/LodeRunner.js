@@ -13,16 +13,27 @@ CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
 
 // tente não definir mais nenhuma variável global
 
-const GOLD_SCORE = 100;
-const ROBOT_SCORE = 100;
+const GOLD_SCORE = 250;
+const ROBOT_SCORE = 75;
+const ROBOT_TRAP_SCORE = 75;
+const LEVEL_UP_SCORE = 1500;
 const DEFAULT_MAX_LIVES = 2;
+// TODO Acts like a constant but it's changed through the GUI.
 let ROBOT_SPEED = 2;
 
 const ROBOT_TRAP_TIME = 15;
 const TRAP_RESTORE_TIME = 40;
 const GOLD_HOLD_TIME = 10;
 
-let html;
+const FALL_THROUGH = -1;
+const FALL_ON = 0;
+const FALL_IN = 1;
+
+const RIGHT = 1;
+const LEFT = -1;
+
+
+let interface;
 let empty, hero, control, patrimony;
 
 
@@ -30,8 +41,6 @@ let empty, hero, control, patrimony;
 
 class Actor {
 	constructor(x, y, imageName) {
-		const RIGHT = 1;
-		const LEFT = -1;
 		this.direction = LEFT;
 		this.x = x;
 		this.y = y;
@@ -72,9 +81,6 @@ class Actor {
 
 }
 
-const FALL_THROUGH = -1;
-const FALL_ON = 0;
-const FALL_IN = 1;
 
 class PassiveActor extends Actor {
 	show() {
@@ -164,7 +170,6 @@ class ActiveActor extends Actor {
 	}
 
 	show() {
-		console.log(this.constructor.name + " time " + this.time);
 		// TODO Fix first animation form falling
 		if (this.time !== undefined) {
 			if (this.isFalling()) {
@@ -242,6 +247,7 @@ class Villain extends NPC {
 		this.pickedUpTime = -1;
 		// TODO have a score here? or just defined inside each specific villain. or add here AND redefine?
 		this.score = 0;
+		this.trapScore = 0;
 	}
 
 	catchLoot() {
@@ -286,10 +292,11 @@ class Villain extends NPC {
 			}
 			if (this.timeTrap < 0) {
 				this.timeTrap = control.time;
+				patrimony.updateScore(this.trapScore);
 				// Villain can't move inside trap.
 				return;
 			} else if (control.time - this.timeTrap > ROBOT_TRAP_TIME) {
-				this.respawn(this.direction, -1);
+				this.respawn(0, -1);
 				current.switch();
 				this.timeTrap = -1;
 			} else return; // Villain can't move inside trap.
@@ -477,7 +484,7 @@ class Hero extends ActiveActor {
 
 	setGoldCount(n) {
 		this.goldCount = n;
-		html.setGoldCount(n);
+		interface.setGoldCount(n);
 	}
 
 	caughtAllGold() {
@@ -498,11 +505,11 @@ class Hero extends ActiveActor {
 		// We need to know if it's actually Gold since it's what the game is about
 		if (loot instanceof Gold) {
 			this.goldCount--;
-			html.caughtGold();
+			interface.caughtGold();
 		}
 		// However we have functionality to include other loot, just add personalized behavior here if needed
 
-		html.updateScore(loot.score);
+		patrimony.updateScore(loot.score);
 	}
 
 	catchLoot() {
@@ -517,13 +524,14 @@ class Hero extends ActiveActor {
 	}
 
 	killedVillain(villain) {
-		html.updateScore(villain.score);
+		patrimony.updateScore(villain.score);
 	}
 
 	shoot() {
 		// We use Empty - making sure we don't shoot under anything else like chimneys and hidden ladders 
 		// This is the case because when robots drop gold we don't override important markers.
-		if (control.get(this.x + this.direction, this.y) instanceof Empty && control.getBehind(this.x, this.y).fallMode() === FALL_THROUGH) {
+		if (control.get(this.x + this.direction, this.y) instanceof Empty
+			&& control.getBehind(this.x, this.y).fallMode() === FALL_THROUGH) {
 			control.getBehind(this.x + this.direction, this.y + 1).destroy();
 			this.show(); //?? maybe keep this here
 			if (!(control.get(this.x - this.direction, this.y) instanceof Solid)) {
@@ -542,20 +550,21 @@ class Hero extends ActiveActor {
 			console.log("Game over");
 			patrimony.reset();
 			control.restartGame();
-			html.resetScore();
-			html.resetLives();
+			interface.resetScore();
+			interface.resetLives();
 		} else {
 			console.log("Lost a life");
 			patrimony.decLives();
 			console.log(`I have ${patrimony.getLives()} lives left`);
 			control.restartLevel();
-			html.died();
+			interface.died();
 		}
 
 	}
 
 	animation(dx, dy) {
 		if (this.win()) {
+			patrimony.updateScore(LEVEL_UP_SCORE);
 			control.nextLevel();
 		}
 		super.animation(dx, dy);
@@ -601,6 +610,8 @@ class Robot extends Villain {
 		this.dy = 0;
 		this.closestVerticalPosition = -1;
 		this.score = ROBOT_SCORE; // Score the robot gives when killed
+		this.trapScore = ROBOT_TRAP_SCORE;
+
 	}
 
 	rightRun() {
@@ -753,8 +764,9 @@ class Patrimony {
 		this.lives--;
 	}
 
-	addScore(n) {
+	updateScore(n) {
 		this.score += n;
+		interface.updateScore(n);
 	}
 
 	reset() {
@@ -777,7 +789,7 @@ class GameControl {
 		this.worldActive = this.createMatrix();
 		this.timeout = [];
 		this.level = 1;
-		this.changeLevel = false;
+		this.changeLevelFlag = false;
 		this.loadLevel(1);
 		this.setupEvents();
 		patrimony = new Patrimony();
@@ -802,20 +814,20 @@ class GameControl {
 			}
 	}
 
-	actuallyRestartLevel() {
+	changeLevel() {
 		control.clearLevel();
 		control.loadLevel(control.level);
 	}
 
 	restartLevel() {
 		// control.loadLevel(control.level);
-		control.changeLevel = true;
+		control.changeLevelFlag = true;
 	}
 
 	restartGame() {
 		control.level = 1;
 		// control.restartLevel();
-		control.changeLevel = true;
+		control.changeLevelFlag = true;
 	}
 
 	nextLevel() {
@@ -825,7 +837,7 @@ class GameControl {
 			return false;
 		}
 		control.level += 1;
-		control.changeLevel = true;
+		control.changeLevelFlag = true;
 		return true;
 	}
 
@@ -836,7 +848,7 @@ class GameControl {
 			return false;
 		}
 		control.level -= 1;
-		control.changeLevel = true;
+		control.changeLevelFlag = true;
 		return true;
 	}
 
@@ -877,13 +889,7 @@ class GameControl {
 		setInterval(this.animationEvent, 1000 / ANIMATION_EVENTS_PER_SECOND);
 	}
 
-	animationEvent() {
-
-		if (control.changeLevel) {
-			control.changeLevel = false;
-			control.actuallyRestartLevel();
-		}
-
+	showHiddenLadder() {
 		if (hero.caughtAllGold()) {
 			for (let x = 0; x < WORLD_WIDTH; x++) {
 				for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -894,17 +900,9 @@ class GameControl {
 				}
 			}
 		}
+	}
 
-		control.time++;
-		for (let x = 0; x < WORLD_WIDTH; x++) {
-			for (let y = 0; y < WORLD_HEIGHT; y++) {
-				let a = control.worldActive[x][y];
-				if (a.time < control.time) {
-					a.time = control.time;
-					a.animation();
-				}
-			}
-		}
+	respawnTraps() {
 		let len = control.timeout.length;
 		//console.log("len : " + len);
 		for (let x = 0; x < len; x++) {
@@ -916,6 +914,29 @@ class GameControl {
 				control.timeout.splice(x, 1);
 			}
 		}
+	}
+
+	animationEvent() {
+
+		if (control.changeLevelFlag) {
+			control.changeLevelFlag = false;
+			control.changeLevel();
+		}
+
+		control.showHiddenLadder();
+
+		control.time++;
+		for (let x = 0; x < WORLD_WIDTH; x++) {
+			for (let y = 0; y < WORLD_HEIGHT; y++) {
+				let a = control.worldActive[x][y];
+				if (a.time < control.time) {
+					a.time = control.time;
+					a.animation();
+				}
+			}
+		}
+
+		control.respawnTraps();
 	}
 
 	keyDownEvent(k) {
@@ -949,10 +970,10 @@ function onLoad() {
 	// Asynchronously load the images an then run the game
 	GameImages.loadAll(function () { new GameControl(); });
 	// TODO hero?
-	html = new HTMLHandling();
+	interface = new Interface();
 }
 
-class HTMLHandling {
+class Interface {
 
 	constructor() {
 		this.audio = null;
