@@ -388,13 +388,16 @@ class Trap extends PassiveActor {
 	// Restores trap block without trap restore time passing, i.e. when villain leaves before restore time of trap
 	switch() {
 		const active = control.get(this.x, this.y);
-		let posToFall = control.getBehind(this.x, 0);
+
 
 		// This loop ensures Actors won't spawn inside a block and be lost to the game
-		for (let i = 1; posToFall instanceof Solid; i++)
+		let i = 0;
+		let posToFall = control.getBehind(this.x, i);
+		for (i = 1; posToFall instanceof Solid; i++) {
 			posToFall = control.getBehind(this.x, i);
+		}
 
-		if (active instanceof ActiveActor) active.respawn(0, -this.y - posToFall.y);
+		if (active instanceof ActiveActor) active.respawn(0, -this.y + (i - 1));
 		this.before.show();
 	}
 	restore() {
