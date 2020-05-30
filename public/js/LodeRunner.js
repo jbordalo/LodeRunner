@@ -129,11 +129,17 @@ class ActiveActor extends Actor {
 		return FALL_IN;
 	}
 	respawn(dx, dy) {
-		super.move(dx, dy);
+		// TODO If we put validMove here we make sure not to respawn on top of a robot
+		// What if we don't respawn at all? down to luck when we respawn up on the map
+		// When getting out of a whole, should fix that problem and we still die in trap ?? 
+		// OR return boolean from here to make sure we've moved and act accordingly
+		if (this.validMove(dx, dy))
+			super.move(dx, dy);
 	}
 
 
 	isFalling() {
+		// TODO CAN I FALL ON A ROBOT AS A ROBOT?? robot fallon for robot?
 		const behind = control.getBehind(this.x, this.y);
 		const under = control.get(this.x, this.y + 1);
 		// One falls if:
@@ -273,6 +279,8 @@ class Villain extends NPC {
 	move(dx, dy) {
 		const current = control.getBehind(this.x, this.y);
 
+		// TODO HERE WE MUST KNOW IF THE ROBOT WAS ABLE TO MOVE, IF HE DOESN'T MOVE AND GOLD DROPS THEN HE'S OVERRIDDEN????
+
 		// If we're holding loot
 		if (this.loot !== null) {
 			if (this.pickedUpTime < 0)
@@ -286,7 +294,6 @@ class Villain extends NPC {
 				this.pickedUpTime = -1;
 				return;
 			}
-
 		}
 
 		if (current instanceof Trap) {
@@ -394,10 +401,12 @@ class Trap extends PassiveActor {
 		// This loop ensures Actors won't spawn inside a block and be lost to the game
 		let i = 0;
 		let posToFall = control.getBehind(this.x, i);
-		// TODO, hero do validMove() ????
+		// TODO, hero do validMove() ???? since we can theoretically spawn on top of another robot, even tho suddenly
+		// we might not be able to spawn at all?????????'
 		for (i = 1; posToFall instanceof Solid; i++) {
 			posToFall = control.getBehind(this.x, i);
 		}
+
 		if (active instanceof ActiveActor) active.respawn(0, -this.y + (i - 1));
 		this.before.show();
 	}
