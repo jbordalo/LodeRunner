@@ -268,6 +268,7 @@ class Villain extends NPC {
 
 	catchLoot() {
 
+		console.log("Jag har loot nu");
 		const behind = control.getBehind(this.x, this.y);
 
 		console.assert(behind instanceof Loot);
@@ -287,9 +288,18 @@ class Villain extends NPC {
 				this.pickedUpTime = control.time;
 			else if (control.time - this.pickedUpTime > GOLD_HOLD_TIME
 				&& control.get(this.x, this.y + 1) instanceof Solid && current instanceof Empty) {
+				// Set the position for the loot to drop at
 				this.loot.setDropPosition(this.x, this.y);
-				super.move(dx, dy);
-				this.loot.show();
+				// Move the Villain so he doesn't catch the loot right back, however he might not be able to move
+				// In which case he will just catch it right back but we can't show gold over him
+				if (this.validMove(dx, dy)) {
+					super.move(dx, dy);
+					this.loot.show();
+
+				}
+				// If he wasn't allowed to move, will just catch the loot back up
+				// TODO THEY're NOT DROPPING IT???
+				// this.loot.show();
 				this.loot = null;
 				this.pickedUpTime = -1;
 				return;
@@ -659,6 +669,7 @@ class Robot extends Villain {
 		this.dy = 0;
 		this.score = ROBOT_SCORE; // Score the robot gives when killed
 		this.trapScore = ROBOT_TRAP_SCORE; // Score the robot gives when trapped
+		this.prevFound = -1;
 	}
 
 	rightRun() {
@@ -761,6 +772,11 @@ class Robot extends Villain {
 			// Find the closest stairs which go in yDir
 			const closestVerticalPosition = this.findClosestVertical(this.x, this.y, yDir);
 
+			// If we found the same ladder but we know we can't move towards it just try to move in the direction of the hero
+			if (closestVerticalPosition === this.prevFound) {
+				return [xDir, 0];
+			}
+
 			// If we're on the ladder's column
 			if (this.x == closestVerticalPosition) {
 				// We move in yDir except if we can't
@@ -788,6 +804,9 @@ class Robot extends Villain {
 				const ladderDir = this.x > closestVerticalPosition ? LEFT : RIGHT;
 
 				if (!this.validMove(ladderDir, 0) || closestVerticalPosition == -1) {
+					// Set prevFound as the last vertical we saw but couldn't move towards
+					// So we know next time to try something else
+					this.prevFound = closestVerticalPosition;
 					return [xDir, 0];
 				}
 				return [ladderDir, 0];
