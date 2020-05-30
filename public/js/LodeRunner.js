@@ -12,6 +12,9 @@ the ladder.
 - We assumed a type of Actor can't move against one of its own type
 - The Robots are programmed to find the closest ladder that allows them to get on our
 level, then move towards us
+- We decided that a Villain couldn't drop loot if he can't move (except for Traps), i.e. if 
+he were to drop gold on himself and catch it right back. Wouldn't make sense so we added that
+to the conditions of not being able to drop loot
 
 01234567890123456789012345678901234567890123456789012345678901234567890123456789
 */
@@ -279,27 +282,19 @@ class Villain extends NPC {
 
 	move(dx, dy) {
 		const current = control.getBehind(this.x, this.y);
-
-		// TODO HERE WE MUST KNOW IF THE ROBOT WAS ABLE TO MOVE, IF HE DOESN'T MOVE AND GOLD DROPS THEN HE'S OVERRIDDEN????
-
 		// If we're holding loot
 		if (this.loot !== null) {
 			if (this.pickedUpTime < 0)
 				this.pickedUpTime = control.time;
-			else if (control.time - this.pickedUpTime > GOLD_HOLD_TIME
+			else if (control.time - this.pickedUpTime > GOLD_HOLD_TIME && this.validMove(dx, dy)
 				&& control.get(this.x, this.y + 1) instanceof Solid && current instanceof Empty) {
+
 				// Set the position for the loot to drop at
 				this.loot.setDropPosition(this.x, this.y);
 				// Move the Villain so he doesn't catch the loot right back, however he might not be able to move
-				// In which case he will just catch it right back but we can't show gold over him
-				if (this.validMove(dx, dy)) {
-					super.move(dx, dy);
-					this.loot.show();
 
-				}
-				// If he wasn't allowed to move, will just catch the loot back up
-				// TODO THEY're NOT DROPPING IT???
-				// this.loot.show();
+				super.move(dx, dy);
+				this.loot.show();
 				this.loot = null;
 				this.pickedUpTime = -1;
 				return;
@@ -772,6 +767,7 @@ class Robot extends Villain {
 			// Find the closest stairs which go in yDir
 			const closestVerticalPosition = this.findClosestVertical(this.x, this.y, yDir);
 
+			// TODO barely tested after adding this
 			// If we found the same ladder but we know we can't move towards it just try to move in the direction of the hero
 			if (closestVerticalPosition === this.prevFound) {
 				return [xDir, 0];
