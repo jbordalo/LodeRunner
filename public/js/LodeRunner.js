@@ -10,7 +10,8 @@ CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
 ladder since we're still holding the gun and it doesn't mean we'll have to go up
 the ladder.
 - We assumed a type of Actor can't move against one of its own type
-- 
+- The Robots are programmed to find the closest ladder that allows them to get on our
+level, then move towards us
 
 01234567890123456789012345678901234567890123456789012345678901234567890123456789
 */
@@ -73,7 +74,6 @@ class Actor {
 
 	move(dx, dy) {
 		if (!this.validMove(dx, dy)) {
-			console.log("Respect world boundaries");
 			return;
 		}
 
@@ -519,8 +519,7 @@ class Hero extends ActiveActor {
 	}
 
 	checkWin() {
-		//TODO instanceof Vertical
-		return (this.caughtAllGold() && this.y == 0 && (control.getBehind(this.x, this.y) instanceof Ladder));
+		return (this.caughtAllGold() && this.y == 0 && (control.getBehind(this.x, this.y) instanceof Vertical));
 	}
 
 	caughtLoot(loot) {
@@ -532,6 +531,7 @@ class Hero extends ActiveActor {
 		}
 		// However we have functionality to include other loot, just add personalized behavior here if needed
 
+		// We add the score the loot gives to our patrimony, independent of loot type
 		patrimony.updateScore(loot.score);
 	}
 
@@ -712,7 +712,6 @@ class Robot extends Villain {
 				}
 			}
 		}
-		if (ladder == -1) console.log("didnt find a ladder");
 		return ladder;
 	}
 
@@ -772,10 +771,13 @@ class Robot extends Villain {
 			else {
 				// Unless we can't go, in which case we must try to go towards the hero
 				// Since there might be a way to fall that's not a Vertical
-				if (!this.validMove(this.x > closestVerticalPosition ? LEFT : RIGHT, 0)) {
+
+				const ladderDir = this.x > closestVerticalPosition ? LEFT : RIGHT;
+
+				if (!this.validMove(ladderDir, 0) || closestVerticalPosition == -1) {
 					return [xDir, 0];
 				}
-				return [this.x > closestVerticalPosition ? LEFT : RIGHT, 0];
+				return [ladderDir, 0];
 			}
 
 		}
@@ -1020,7 +1022,6 @@ class GUI {
 	}
 
 	slider() {
-		console.log(this.robotSpeedSlider.value);
 		// +1 so that 0 becomes 1 and robots are stopped
 		ROBOT_SPEED = parseInt(this.robotSpeedSlider.value, 10) + 1;
 
