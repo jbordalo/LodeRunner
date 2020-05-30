@@ -302,6 +302,8 @@ class Villain extends NPC {
 				// Villain can't move inside trap.
 				return;
 			} else if (control.time - this.timeTrap > ROBOT_TRAP_TIME) {
+				// TODO here make sure it's a validMove so we don't override another robot
+				// Put it inside respawn????
 				this.respawn(0, -1);
 				current.switch();
 				this.timeTrap = -1;
@@ -389,14 +391,13 @@ class Trap extends PassiveActor {
 	switch() {
 		const active = control.get(this.x, this.y);
 
-
 		// This loop ensures Actors won't spawn inside a block and be lost to the game
 		let i = 0;
 		let posToFall = control.getBehind(this.x, i);
+		// TODO, hero do validMove() ????
 		for (i = 1; posToFall instanceof Solid; i++) {
 			posToFall = control.getBehind(this.x, i);
 		}
-
 		if (active instanceof ActiveActor) active.respawn(0, -this.y + (i - 1));
 		this.before.show();
 	}
