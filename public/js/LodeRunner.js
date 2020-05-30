@@ -615,7 +615,7 @@ class Hero extends ActiveActor {
 			patrimony.updateScore(LEVEL_UP_SCORE);
 			if (control.level !== MAPS.length) {
 				control.nextLevel();
-				gui.nextLevel();
+				gui.updateLevel();
 			}
 			else {
 				gui.wonGame();
@@ -981,7 +981,7 @@ class GameControl {
 	}
 
 	animationEvent() {
-
+		console.log(control.time);
 		// If the change level flag is set we change level
 		if (control.changeLevelFlag) {
 			control.changeLevelFlag = false;
@@ -1068,6 +1068,10 @@ class GUI {
 	// Reset level button
 	resetLevel() {
 		control.restartLevel();
+	}
+
+	updateLevel() {
+		this.current.value = control.level;
 	}
 
 	previousLevel() {
