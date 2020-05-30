@@ -29,7 +29,7 @@ const DEFAULT_MAX_LIVES = 9;
 let ROBOT_SPEED = 2;
 const ROBOT_TRAP_TIME = 15;
 const TRAP_RESTORE_TIME = 40;
-const GOLD_HOLD_TIME = 10;
+const ROBOT_LOOT_HOLD_TIME = 10;
 
 // For handling falling situations
 const FALL_THROUGH = -1;
@@ -46,7 +46,6 @@ const LEFT = -1;
 
 let gui; // For the interface
 let empty, hero, control, patrimony;
-
 
 // ACTORS
 
@@ -133,16 +132,11 @@ class ActiveActor extends Actor {
 		return FALL_IN;
 	}
 	respawn(dx, dy) {
-		// TODO If we put validMove here we make sure not to respawn on top of a robot
-		// What if we don't respawn at all? down to luck when we respawn up on the map
-		// When getting out of a whole, should fix that problem and we still die in trap ?? 
-		// OR return boolean from here to make sure we've moved and act accordingly
 		super.move(dx, dy);
 	}
 
 
 	isFalling() {
-		// TODO CAN I FALL ON A ROBOT AS A ROBOT?? robot fallon for robot?
 		const behind = control.getBehind(this.x, this.y);
 		const under = control.get(this.x, this.y + 1);
 		// One falls if:
@@ -176,6 +170,7 @@ class ActiveActor extends Actor {
 
 	animation(dx, dy) {
 		if (!this.fall()) return;
+
 		try {
 			[dx, dy] = this.setDirection();
 		} catch (e) {
@@ -263,6 +258,7 @@ class Villain extends NPC {
 	constructor(x, y, imageName) {
 		super(x, y, imageName);
 		this.loot = null;
+		this.lootHoldTime = 0;
 		this.pickedUpTime = -1;
 		this.score = 0;
 		this.trapScore = 0;
@@ -285,7 +281,7 @@ class Villain extends NPC {
 		if (this.loot !== null) {
 			if (this.pickedUpTime < 0)
 				this.pickedUpTime = control.time;
-			else if (control.time - this.pickedUpTime > GOLD_HOLD_TIME && this.validMove(dx, dy)
+			else if (control.time - this.pickedUpTime > this.lootHoldTime && this.validMove(dx, dy)
 				&& control.get(this.x, this.y + 1) instanceof Solid && current instanceof Empty) {
 
 				// Set the position for the loot to drop at
@@ -668,6 +664,7 @@ class Robot extends Villain {
 		this.score = ROBOT_SCORE; // Score the robot gives when killed
 		this.trapScore = ROBOT_TRAP_SCORE; // Score the robot gives when trapped
 		this.prevFound = -1;
+		this.lootHoldTime = ROBOT_LOOT_HOLD_TIME;
 	}
 
 	rightRun() {
@@ -764,7 +761,6 @@ class Robot extends Villain {
 			// If robot is on a rope and hero is underneath him he tries to jump unless there's a solid block underneath
 			// Also, if he's on a Vertical and it ends midair he can now jump off it if he needs to
 			if (((current instanceof Horizontal && !(under instanceof Solid)) || under instanceof FallThrough) && yDir > 0) {
-				if (under instanceof Empty) console.log("Standing on empty");
 				return [0, 1];
 			}
 
@@ -1076,7 +1072,7 @@ class GUI {
 	}
 
 	updateLevel() {
-		this.current.value = (control.level + 1);
+		this.currentLevel.value = control.level;
 	}
 
 	previousLevel() {
