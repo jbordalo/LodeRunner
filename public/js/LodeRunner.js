@@ -122,6 +122,7 @@ class ActiveActor extends Actor {
 	constructor(x, y, imageName) {
 		super(x, y, imageName);
 		this.time = 0;	// timestamp used in the control of the animations
+		this.timeTrap = -1;
 	}
 
 	hide() {
@@ -136,8 +137,7 @@ class ActiveActor extends Actor {
 		// What if we don't respawn at all? down to luck when we respawn up on the map
 		// When getting out of a whole, should fix that problem and we still die in trap ?? 
 		// OR return boolean from here to make sure we've moved and act accordingly
-		if (this.validMove(dx, dy))
-			super.move(dx, dy);
+		super.move(dx, dy);
 	}
 
 
@@ -262,7 +262,6 @@ class NPC extends ActiveActor {
 class Villain extends NPC {
 	constructor(x, y, imageName) {
 		super(x, y, imageName);
-		this.timeTrap = -1;
 		this.loot = null;
 		this.pickedUpTime = -1;
 		this.score = 0;
@@ -271,7 +270,6 @@ class Villain extends NPC {
 
 	catchLoot() {
 
-		console.log("Jag har loot nu");
 		const behind = control.getBehind(this.x, this.y);
 
 		console.assert(behind instanceof Loot);
@@ -281,6 +279,7 @@ class Villain extends NPC {
 	}
 
 	move(dx, dy) {
+
 		const current = control.getBehind(this.x, this.y);
 		// If we're holding loot
 		if (this.loot !== null) {
@@ -311,16 +310,15 @@ class Villain extends NPC {
 			if (this.timeTrap < 0) {
 				this.timeTrap = control.time;
 				patrimony.updateScore(this.trapScore);
-				// Villain can't move inside trap.
+				// Villain can't move inside trap so we return.
 				return;
 			} else if (control.time - this.timeTrap > ROBOT_TRAP_TIME) {
-				// TODO here make sure it's a validMove so we don't override another robot
-				// Put it inside respawn????
 				this.respawn(0, -1);
 				current.switch();
 				this.timeTrap = -1;
 			} else return; // Villain can't move inside trap.
 		}
+
 		super.move(dx, dy);
 	}
 }
@@ -403,18 +401,23 @@ class Trap extends PassiveActor {
 	switch() {
 		const active = control.get(this.x, this.y);
 
-		// This loop ensures Actors won't spawn inside a block and be lost to the game
+		// This loop ensures Actors won't spawn inside a block or another Actor and be lost to the game
 		let i = 0;
-		let posToFall = control.getBehind(this.x, i);
-		// TODO, hero do validMove() ???? since we can theoretically spawn on top of another robot, even tho suddenly
-		// we might not be able to spawn at all?????????'
-		for (i = 1; posToFall instanceof Solid; i++) {
-			posToFall = control.getBehind(this.x, i);
+		let posToFall = control.get(this.x, 0);
+
+		// TODO villain???
+		for (i = 1; posToFall instanceof Solid || posToFall instanceof Villain; i++) {
+			posToFall = control.get(this.x, i);
 		}
 
-		if (active instanceof ActiveActor) active.respawn(0, -this.y + (i - 1));
+		if (active instanceof ActiveActor) {
+			active.respawn(0, -this.y + (i - 1));
+			active.timeTrap = -1;
+		}
+
 		this.before.show();
 	}
+
 	restore() {
 		if (control.time - this.created > TRAP_RESTORE_TIME) {
 			this.switch();
@@ -749,6 +752,7 @@ class Robot extends Villain {
 			return;
 		}
 
+
 		// If they're on the same Y
 		if (this.y == hero.y) {
 			// Robot walks in x direction if on same level with the hero
@@ -757,17 +761,17 @@ class Robot extends Villain {
 		// If they're not on the same Y
 		else {
 
-			// If we can and need to go down, go down
-			// Needed for ropes and jumping off of ladders when they end midair
-			if ((!(under instanceof Solid)) && yDir > 0) {
-				// Removing solid makes it try to jump and get stuck
+			// If robot is on a rope and hero is underneath him he tries to jump unless there's a solid block underneath
+			// Also, if he's on a Vertical and it ends midair he can now jump off it if he needs to
+			if (((current instanceof Horizontal && !(under instanceof Solid)) || under instanceof FallThrough) && yDir > 0) {
+				if (under instanceof Empty) console.log("Standing on empty");
 				return [0, 1];
 			}
 
 			// Find the closest stairs which go in yDir
 			const closestVerticalPosition = this.findClosestVertical(this.x, this.y, yDir);
 
-			// TODO barely tested after adding this
+			// TODO barely tested after adding this, maybe we will never find this ladder anymore???
 			// If we found the same ladder but we know we can't move towards it just try to move in the direction of the hero
 			if (closestVerticalPosition === this.prevFound) {
 				return [xDir, 0];
@@ -799,12 +803,14 @@ class Robot extends Villain {
 
 				const ladderDir = this.x > closestVerticalPosition ? LEFT : RIGHT;
 
+				// TODO this is maybe changing their behavior, he walked to the left instead of finding a new ladder
 				if (!this.validMove(ladderDir, 0) || closestVerticalPosition == -1) {
 					// Set prevFound as the last vertical we saw but couldn't move towards
 					// So we know next time to try something else
 					this.prevFound = closestVerticalPosition;
 					return [xDir, 0];
 				}
+
 				return [ladderDir, 0];
 			}
 
@@ -981,8 +987,8 @@ class GameControl {
 	}
 
 	animationEvent() {
-		console.log(control.time);
 		// If the change level flag is set we change level
+		control.time++;
 		if (control.changeLevelFlag) {
 			control.changeLevelFlag = false;
 			control.changeLevel();
@@ -991,7 +997,6 @@ class GameControl {
 
 		control.showHiddenLadder();
 
-		control.time++;
 		for (let x = 0; x < WORLD_WIDTH; x++) {
 			for (let y = 0; y < WORLD_HEIGHT; y++) {
 				let a = control.worldActive[x][y];
@@ -1071,7 +1076,7 @@ class GUI {
 	}
 
 	updateLevel() {
-		this.current.value = control.level;
+		this.current.value = (control.level + 1);
 	}
 
 	previousLevel() {
