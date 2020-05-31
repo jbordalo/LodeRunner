@@ -299,6 +299,8 @@ class Villain extends NPC {
 			else if (control.time - this.pickedUpTime > this.lootHoldTime
 				&& this.validMove(dx, dy)
 				&& control.get(this.x, this.y + 1) instanceof Solid
+				// We chose Empty to avoid complications
+				// With eliminating other blocks
 				&& current instanceof Empty) {
 
 				// Set the position for the loot to drop at
