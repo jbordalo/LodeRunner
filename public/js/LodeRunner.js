@@ -8,7 +8,9 @@ ladder since we're still holding the gun and it doesn't mean we'll have to go up
 the ladder.
 - We assumed a type of Actor can't move against one of its own type
 - The Robots are programmed to find the closest ladder that allows them to get
-on our level, then move towards us
+on our level, then move towards us. Often they look bugged but that comes from
+their lack of intelligence, hence trying to go up and to the side even though
+they'll fall and start looping.
 - We decided that a Villain couldn't drop loot if he can't move 
 (except for Traps), i.e. if 
 he were to drop gold on himself and catch it right back. Wouldn't make sense so
@@ -572,7 +574,8 @@ class Hero extends ActiveActor {
 
 	caughtLoot(loot) {
 
-		// We need to know if it's actually Gold since it's what the game is about
+		// We need to know if it's actually Gold since 
+		//it's what the game is about
 		if (loot instanceof Gold) {
 			this.goldCount--;
 			gui.caughtGold();
@@ -580,7 +583,8 @@ class Hero extends ActiveActor {
 		// However we have functionality to include other loot, 
 		// just add personalized behavior here if needed
 
-		// We add the score the loot gives to our patrimony, independent of loot type
+		// We add the score the loot gives to our patrimony, 
+		//independent of loot type
 		patrimony.updateScore(loot.score);
 	}
 
@@ -755,7 +759,11 @@ class Robot extends Villain {
 		for (let i = 0; i < WORLD_WIDTH; i++) {
 			let a = control.getBehind(i, y);
 			let b = control.getBehind(i, y + 1);
-			if (a instanceof Vertical && a.canGoDir(lambda)) {
+			// If going up on a Vertical Passage, and the next block is empty
+			// or another Vertical we can go up.
+			if (a instanceof Vertical && (a.canGoDir(lambda)
+			|| (lambda < 0 
+				&& !(control.getBehind(a.x, a.y + lambda) instanceof Solid)))) {
 				if (Math.abs(x - i) < dist) {
 					dist = Math.abs(x - i);
 					ladder = i;
