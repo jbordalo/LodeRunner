@@ -3,9 +3,6 @@
 Jacinta Sousa 55075
 Joao Bordalo 55697
 
-TODO
-CHANGED HTML SCRIPT SOURCE FOR DIRECTORY STRUCTURE, POSSIBLY REVERT TO ORIGINAL
-
 -We have decided to let the animation for shot continue even if we recoil into a
 ladder since we're still holding the gun and it doesn't mean we'll have to go up
 the ladder.
@@ -1178,7 +1175,3 @@ class GUI {
 	}
 
 }
-
-
-
-
