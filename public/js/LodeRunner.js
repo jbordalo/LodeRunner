@@ -616,7 +616,7 @@ class Hero extends ActiveActor {
 			// under anything else like chimneys
 			// This is the case because when robots drop gold 
 			// we don't override important markers.
-			if (!(aboveTarget instanceof Empty || aboveTarget instanceof Trap)
+			if ((aboveTarget instanceof Empty || aboveTarget instanceof Trap)
 				&& (behind.fallMode() === FALL_THROUGH
 					|| !behind.isVisible())) {
 				target.destroy();
@@ -833,17 +833,19 @@ class Robot extends Villain {
 			}
 			// If we're not on the ladder's column, go towards it
 			else {
-				// Unless we can't go, in which case we must try to go towards 
+				// Unless we can't go, in which case we must try to go towards
 				// the hero since there might be a way to fall
 				// that's not a Vertical
 
 				const ladderDir =
 					this.x > closestVerticalPosition ? LEFT : RIGHT;
 
-				if (!this.validMove(ladderDir, 0)
+				if ((!this.validMove(ladderDir, 0)
+					&& !(current instanceof Trap))
 					|| closestVerticalPosition == -1) {
 					// Set prevFound as the last vertical we saw 
-					// but couldn't move towards
+					// but couldn't move towards unless we were Trapped,
+					// in which case the vertical might still be reachable
 					// So we know next time to try something else
 					this.prevFound = closestVerticalPosition;
 					return [xDir, 0];
