@@ -160,12 +160,6 @@ class ActiveActor extends Actor {
 
 	fall() {
 		if (this.isFalling()) {
-			const current = control.getBehind(this.x, this.y);
-
-			// Allow loot to be catchable mid-air
-			if (current instanceof Loot) {
-				this.catchLoot();
-			}
 			this.move(0, 1);
 			return false;
 		}
